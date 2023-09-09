@@ -41,6 +41,9 @@ struct pwr_tree_client c_c = {.name = "c_c"};
     }                                                                                              \
   } while (0)
 
+#define ASSERT_OK(_call_) TEST_ASSERT_MESSAGE((_call_) == 0, "Call returned unexpected error")
+#define ASSERT_ERR(_call_) TEST_ASSERT_MESSAGE((_call_) != 0, "Call returned ok but expected error")
+
 void assert_tree_state_optimal(void) {
   ASSERT_NODE(n_root, c_a.enabled || c_b1.enabled || c_b2.enabled || c_c.enabled);
   ASSERT_NODE(n_a, c_a.enabled);
@@ -63,41 +66,41 @@ void init_tree(void) {
 
 void test_basic_1(void) {
   assert_tree_state_optimal();
-  pwr_tree_enable_client(&c_a);
+  ASSERT_OK(pwr_tree_enable_client(&c_a));
   assert_tree_state_optimal();
-  pwr_tree_enable_client(&c_b1);
+  ASSERT_OK(pwr_tree_enable_client(&c_b1));
   assert_tree_state_optimal();
-  pwr_tree_enable_client(&c_b2);
+  ASSERT_OK(pwr_tree_enable_client(&c_b2));
   assert_tree_state_optimal();
-  pwr_tree_enable_client(&c_c);
+  ASSERT_OK(pwr_tree_enable_client(&c_c));
   assert_tree_state_optimal();
-  pwr_tree_disable_client(&c_c);
+  ASSERT_OK(pwr_tree_disable_client(&c_c));
   assert_tree_state_optimal();
-  pwr_tree_disable_client(&c_b2);
+  ASSERT_OK(pwr_tree_disable_client(&c_b2));
   assert_tree_state_optimal();
-  pwr_tree_disable_client(&c_b1);
+  ASSERT_OK(pwr_tree_disable_client(&c_b1));
   assert_tree_state_optimal();
-  pwr_tree_disable_client(&c_a);
+  ASSERT_OK(pwr_tree_disable_client(&c_a));
   assert_tree_state_optimal();
 }
 
 void test_basic_2(void) {
   assert_tree_state_optimal();
-  pwr_tree_enable_client(&c_b1);
+  ASSERT_OK(pwr_tree_enable_client(&c_b1));
   assert_tree_state_optimal();
-  pwr_tree_enable_client(&c_c);
+  ASSERT_OK(pwr_tree_enable_client(&c_c));
   assert_tree_state_optimal();
-  pwr_tree_disable_client(&c_b1);
+  ASSERT_OK(pwr_tree_disable_client(&c_b1));
   assert_tree_state_optimal();
-  pwr_tree_disable_client(&c_c);
+  ASSERT_OK(pwr_tree_disable_client(&c_c));
   assert_tree_state_optimal();
 }
 
 void test_basic_3(void) {
   assert_tree_state_optimal();
-  pwr_tree_enable_client(&c_c);
+  ASSERT_OK(pwr_tree_enable_client(&c_c));
   assert_tree_state_optimal();
-  pwr_tree_disable_client(&c_c);
+  ASSERT_OK(pwr_tree_disable_client(&c_c));
   assert_tree_state_optimal();
 }
 
@@ -107,7 +110,6 @@ void test_optimise_1(void) {
   pwr_tree_optimise(&n_root);
   assert_tree_state_optimal();
 }
-
 
 // ======== Main ===================================================================================
 
