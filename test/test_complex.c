@@ -2,6 +2,7 @@
 #include "string.h"
 #include "unity.h"
 #include "unity_internals.h"
+#include "utils.h"
 
 #include "pwr_tree.h"
 
@@ -34,6 +35,8 @@ bool EXPECT_INTERNAL_ASSERT = false;
 // except n_g, which has two (c_g1, c_g2). In addition, there is node c_many, which has
 // parents n_a, n_d, and n_e.
 
+int mock_cb_update(const struct pt_node *self);
+
 // NODES:
 struct pt_node n_root = {.name = "n_root"};
 struct pt_node n_a = {.name = "n_a"};
@@ -44,8 +47,8 @@ struct pt_node n_e = {.name = "n_e"};
 struct pt_node n_f = {.name = "n_f"};
 struct pt_node n_g = {.name = "n_g"};
 
-struct pt_node *nodes[] = {&n_root, &n_a, &n_b, &n_c, &n_e, &n_f, &n_g};
-struct pt pt = {.nodes = nodes, .count = sizeof(nodes) / sizeof(nodes[0]), .root = &n_root};
+struct pt_node *nodes[] = {&n_root, &n_a, &n_b, &n_c, &n_d, &n_e, &n_f, &n_g};
+struct pt pt = {.nodes = nodes, .node_count = sizeof(nodes) / sizeof(nodes[0]), .root = &n_root};
 
 // CLIENTS:
 struct pt_client c_root = {.name = "c_root"};
@@ -59,19 +62,8 @@ struct pt_client c_g1 = {.name = "c_g1"};
 struct pt_client c_g2 = {.name = "c_g2"};
 struct pt_client c_many = {.name = "c_many"};
 
-#define ASSERT_NODE(_node_, _state_)                                                                                   \
-  do {                                                                                                                 \
-    if (_state_) {                                                                                                     \
-      TEST_ASSERT_MESSAGE((_node_).enabled, "Node " #_node_ " is off but should be on.");                              \
-    } else {                                                                                                           \
-      TEST_ASSERT_MESSAGE(!(_node_).enabled, "Node " #_node_ " is on but should be off.");                             \
-    }                                                                                                                  \
-  } while (0)
-
-#define ASSERT_OK(_call_)  TEST_ASSERT_MESSAGE((_call_) == 0, "Call returned unexpected error")
-#define ASSERT_ERR(_call_) TEST_ASSERT_MESSAGE((_call_) != 0, "Call returned ok but expected error")
-
 void assert_tree_state_optimal(void) {
+  assert_tree_state_legal(&pt);
   ASSERT_NODE(n_root, c_root.enabled || c_a.enabled || c_b.enabled || c_c.enabled || c_d.enabled || c_e.enabled ||
                           c_f.enabled || c_g1.enabled || c_g2.enabled || c_many.enabled);
 
@@ -89,6 +81,12 @@ void assert_tree_state_optimal(void) {
   ASSERT_NODE(n_f, c_f.enabled || c_g1.enabled || c_g2.enabled);
 
   ASSERT_NODE(n_g, c_g1.enabled || c_g2.enabled);
+}
+
+int mock_cb_update(const struct pt_node *self) {
+  (void)self;
+  assert_tree_state_legal(&pt);
+  return 0;
 }
 
 void init_tree(void) {

@@ -18,9 +18,8 @@ static bool has_active_dependant(struct pt_node *node);
 
 // ==== Public Functions =======================================================
 
-int pt_enable_client(struct pt *tree, struct pt_client *client) {
-  PWR_TREE_ASSERT(tree != 0);
-  PWR_TREE_ASSERT(client != 0);
+int pt_enable_client(struct pt *pt, struct pt_client *client) {
+  (void)pt;
 
   for (size_t i = 0; i < client->parent_count; i++) {
     int err = inner_enable(client->parents[i], 0);
@@ -32,9 +31,8 @@ int pt_enable_client(struct pt *tree, struct pt_client *client) {
   return 0;
 }
 
-int pt_disable_client(struct pt *tree, struct pt_client *client) {
-  PWR_TREE_ASSERT(tree != 0);
-  PWR_TREE_ASSERT(client != 0);
+int pt_disable_client(struct pt *pt, struct pt_client *client) {
+  (void)pt;
 
   client->enabled = false;
 
@@ -46,15 +44,10 @@ int pt_disable_client(struct pt *tree, struct pt_client *client) {
   return 0;
 }
 
-int pt_optimise(struct pt_node *root) {
-  PWR_TREE_ASSERT(root != 0);
-  return inner_optimise(root, 0);
-}
+int pt_optimise(struct pt *pt) { return inner_optimise(pt->root, 0); }
 
 void pt_node_add_child(struct pt_node *node, struct pt_node *child) {
-  PWR_TREE_ASSERT(node != 0);
   PWR_TREE_ASSERT(node->child_count < PWR_TREE_MAX_CHILDREN);
-  PWR_TREE_ASSERT(child != 0);
   PWR_TREE_ASSERT(child->parent_count < PWR_TREE_MAX_PARENTS);
 
   node->children[node->child_count] = child;
@@ -64,9 +57,7 @@ void pt_node_add_child(struct pt_node *node, struct pt_node *child) {
 }
 
 void pt_node_add_client(struct pt_node *node, struct pt_client *client) {
-  PWR_TREE_ASSERT(node != 0);
   PWR_TREE_ASSERT(node->client_count < PWR_TREE_MAX_CHILDREN);
-  PWR_TREE_ASSERT(client != 0);
   PWR_TREE_ASSERT(client->parent_count < PWR_TREE_MAX_PARENTS);
 
   node->clients[node->client_count] = client;
@@ -75,15 +66,14 @@ void pt_node_add_client(struct pt_node *node, struct pt_client *client) {
   client->parent_count++;
 }
 
-int pt_init(struct pt *tree) {
+int pt_init(struct pt *pt) {
   // Attempt to optimise. Catches loops:
-  return pt_optimise(tree->root);
+  return pt_optimise(pt);
 }
 
 // ==== Private Functions ======================================================
 
 static int inner_enable(struct pt_node *node, uint32_t current_depth) {
-  PWR_TREE_ASSERT(node != 0);
   if (current_depth == PWR_TREE_MAX_DEPTH) {
     return -1;
   }
@@ -113,7 +103,6 @@ static int inner_enable(struct pt_node *node, uint32_t current_depth) {
 }
 
 static int inner_disable(struct pt_node *node, uint32_t current_depth) {
-  PWR_TREE_ASSERT(node != 0);
   if (current_depth == PWR_TREE_MAX_DEPTH) {
     return -1;
   }
@@ -143,7 +132,6 @@ static int inner_disable(struct pt_node *node, uint32_t current_depth) {
 }
 
 static int inner_optimise(struct pt_node *node, uint32_t current_depth) {
-  PWR_TREE_ASSERT(node != 0);
   if (current_depth == PWR_TREE_MAX_DEPTH) {
     return -1;
   }
@@ -163,15 +151,12 @@ static int inner_optimise(struct pt_node *node, uint32_t current_depth) {
 }
 
 static bool has_active_dependant(struct pt_node *node) {
-  PWR_TREE_ASSERT(node != 0);
   for (size_t i = 0; i < node->child_count; i++) {
-    PWR_TREE_ASSERT(node->children[i] != 0);
     if (node->children[i]->enabled) {
       return true;
     }
   }
   for (size_t i = 0; i < node->client_count; i++) {
-    PWR_TREE_ASSERT(node->clients[i] != 0);
     if (node->clients[i]->enabled) {
       return true;
     }

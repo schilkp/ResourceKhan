@@ -2,6 +2,7 @@
 #include "string.h"
 #include "unity.h"
 #include "unity_internals.h"
+#include "utils.h"
 
 #include "pwr_tree.h"
 
@@ -46,8 +47,8 @@ struct pt_node n_e = {.name = "n_e", .cb_update = mock_cb_update};
 struct pt_node n_f = {.name = "n_f", .cb_update = mock_cb_update};
 struct pt_node n_g = {.name = "n_g", .cb_update = mock_cb_update};
 
-struct pt_node *nodes[] = {&n_root, &n_a, &n_b, &n_c, &n_e, &n_f, &n_g};
-struct pt pt = {.nodes = nodes, .count = sizeof(nodes) / sizeof(nodes[0]), .root = &n_root};
+struct pt_node *nodes[] = {&n_root, &n_a, &n_b, &n_c, &n_d, &n_e, &n_f, &n_g};
+struct pt pt = {.nodes = nodes, .node_count = sizeof(nodes) / sizeof(nodes[0]), .root = &n_root};
 
 // CLIENTS:
 struct pt_client c_root = {.name = "c_root"};
@@ -60,18 +61,6 @@ struct pt_client c_f = {.name = "c_f"};
 struct pt_client c_g1 = {.name = "c_g1"};
 struct pt_client c_g2 = {.name = "c_g2"};
 struct pt_client c_many = {.name = "c_many"};
-
-#define ASSERT_NODE(_node_, _state_)                                                                                   \
-  do {                                                                                                                 \
-    if (_state_) {                                                                                                     \
-      TEST_ASSERT_MESSAGE((_node_).enabled, "Node " #_node_ " is off but should be on.");                              \
-    } else {                                                                                                           \
-      TEST_ASSERT_MESSAGE(!(_node_).enabled, "Node " #_node_ " is on but should be off.");                             \
-    }                                                                                                                  \
-  } while (0)
-
-#define ASSERT_OK(_call_)  TEST_ASSERT_MESSAGE((_call_) == 0, "Call returned unexpected error")
-#define ASSERT_ERR(_call_) TEST_ASSERT_MESSAGE((_call_) != 0, "Call returned ok but expected error")
 
 void assert_tree_state_optimal(void) {
   ASSERT_NODE(n_root, c_root.enabled || c_a.enabled || c_b.enabled || c_c.enabled || c_d.enabled || c_e.enabled ||
@@ -91,30 +80,6 @@ void assert_tree_state_optimal(void) {
   ASSERT_NODE(n_f, c_f.enabled || c_g1.enabled || c_g2.enabled);
 
   ASSERT_NODE(n_g, c_g1.enabled || c_g2.enabled);
-}
-
-void assert_tree_state_legal(void) {
-  struct pt_node nodes[] = {n_root, n_a, n_b, n_c, n_d, n_e, n_f, n_g};
-
-  for (size_t node_i = 0; node_i < sizeof(nodes) / sizeof(struct pt_node); node_i++) {
-    bool has_enabled_dependant = false;
-    for (size_t child_i = 0; child_i < nodes[node_i].child_count; child_i++) {
-      if (nodes[node_i].children[child_i]->enabled) {
-        has_enabled_dependant = true;
-        break;
-      }
-    }
-    for (size_t client_i = 0; client_i < nodes[node_i].client_count; client_i++) {
-      if (nodes[node_i].clients[client_i]->enabled) {
-        has_enabled_dependant = true;
-        break;
-      }
-    }
-
-    if (has_enabled_dependant) {
-      TEST_ASSERT_MESSAGE(nodes[node_i].enabled, "Node has enabeled dependant but is off!");
-    }
-  }
 }
 
 bool n_root_fail = false;
@@ -194,7 +159,7 @@ void test_single_failure_then_retry(void) {
 
   n_a_fail = true;
   ASSERT_ERR(pt_enable_client(&pt, &c_f));
-  assert_tree_state_legal();
+  assert_tree_state_legal(&pt);
 
   n_a_fail = false;
   ASSERT_OK(pt_enable_client(&pt, &c_f));
@@ -209,9 +174,10 @@ void test_single_failure_then_optimise(void) {
 
   n_a_fail = true;
   ASSERT_ERR(pt_enable_client(&pt, &c_f));
-  assert_tree_state_legal();
+  assert_tree_state_legal(&pt);
 
-  ASSERT_OK(pt_optimise(&n_root));
+  n_a_fail = false;
+  ASSERT_OK(pt_optimise(&pt));
   assert_tree_state_optimal();
 
   ASSERT_NODE(n_root, 0);
@@ -228,17 +194,17 @@ void test_multiple_failures(void) {
   n_c_fail = true;
 
   ASSERT_ERR(pt_enable_client(&pt, &c_f));
-  assert_tree_state_legal();
+  assert_tree_state_legal(&pt);
 
   n_c_fail = false;
 
   ASSERT_ERR(pt_enable_client(&pt, &c_f));
-  assert_tree_state_legal();
+  assert_tree_state_legal(&pt);
 
   n_d_fail = false;
 
   ASSERT_ERR(pt_enable_client(&pt, &c_f));
-  assert_tree_state_legal();
+  assert_tree_state_legal(&pt);
 
   n_a_fail = false;
 
@@ -258,7 +224,7 @@ void test_pointless_optimise(void) {
   ASSERT_OK(pt_enable_client(&pt, &c_b));
   assert_tree_state_optimal();
 
-  ASSERT_OK(pt_optimise(&n_root));
+  ASSERT_OK(pt_optimise(&pt));
   assert_tree_state_optimal();
 
   ASSERT_OK(pt_disable_client(&pt, &c_b));
@@ -267,7 +233,7 @@ void test_pointless_optimise(void) {
   ASSERT_OK(pt_disable_client(&pt, &c_f));
   assert_tree_state_optimal();
 
-  ASSERT_OK(pt_optimise(&n_root));
+  ASSERT_OK(pt_optimise(&pt));
   assert_tree_state_optimal();
 }
 

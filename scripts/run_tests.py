@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+from collections import defaultdict
 from os.path import basename, isfile, join, splitext
 
 
@@ -32,15 +33,25 @@ def main(test_dir):
     print()
 
     tests_crashed = []
-    tests_passed = []
-    tests_failed = []
-    tests_ignored = []
+    tests_passed = defaultdict(list)
+    tests_failed = defaultdict(list)
+    tests_ignored = defaultdict(list)
 
     # Run every test
     for test_suite in test_suites:
         test_suite_name = splitext(basename(test_suite))[0]
         print("Running test suite %s..." % test_suite_name)
-        test_output = subprocess.run(test_suite, capture_output=True)
+
+        try:
+            test_output = subprocess.run(
+                test_suite, capture_output=True, timeout=0.10)
+        except subprocess.TimeoutExpired:
+            print(Color.ERR, end='')
+            print("Test suite %s timed-out, test results not reported!" %
+                  test_suite_name)
+            print(Color.END, end='')
+            tests_crashed.append(test_suite_name)
+            continue
 
         suite_output = test_output.stdout.decode()
 
@@ -66,12 +77,12 @@ def main(test_dir):
                     # Report finished
                     break
                 elif ':PASS' in line:
-                    tests_passed.append(cleanup_test_result(test_suite, line))
+                    tests_passed[test_suite].append(cleanup_test_result(line))
                 elif ':FAIL' in line:
-                    tests_failed.append(cleanup_test_result(test_suite, line))
+                    tests_failed[test_suite].append(cleanup_test_result(line))
                     suite_fail_count += 1
                 elif ':IGNORE' in line:
-                    tests_ignored.append(cleanup_test_result(test_suite, line))
+                    tests_ignored[test_suite].append(cleanup_test_result(line))
                 elif ':INFO' in line:
                     print(Color.INFO, end='')
                     print(line)
@@ -95,9 +106,9 @@ def main(test_dir):
 
     # Print summary:
     crashes = len(tests_crashed)
-    passes = len(tests_passed)
-    fails = len(tests_failed)
-    ignores = len(tests_ignored)
+    passes = len([len(l) for l in tests_passed.values()])
+    fails = len([len(l) for l in tests_failed.values()])
+    ignores = len([len(l) for l in tests_ignored.values()])
     tests = passes + fails + ignores
 
     print()
@@ -125,34 +136,44 @@ def main(test_dir):
 
     print()
     print("============ Breakdown ============")
+
+    if passes != 0:
+        print("Passed (%i): " % passes)
+        for suite in sorted(tests_passed):
+            print(Color.OK, end='')
+            print(f"  {basename(suite)}:")
+            print(Color.END, end='')
+            for test in tests_passed[suite]:
+                print(f"   - {test}")
+        print()
+
+    if ignores != 0:
+        print("Ignored (%i): " % ignores)
+        for suite in sorted(tests_ignored):
+            print(Color.WARN, end='')
+            print(f"  {basename(suite)}:")
+            print(Color.END, end='')
+            for test in tests_ignored[suite]:
+                print(f"   - {test}")
+        print()
+
+    if fails != 0:
+        print("Failed (%i): " % fails)
+        for suite in sorted(tests_failed):
+            print(Color.ERR, end='')
+            print(f"  {basename(suite)}:")
+            print(Color.END, end='')
+            for test in tests_failed[suite]:
+                print(f"   - {test}")
+        print()
+
     if crashes != 0:
         print("Crashed test suites (%i):" % crashes)
         print(Color.ERR, end='')
         for suite in sorted(tests_crashed):
-            print(suite)
+            print(f"  {basename(suite)}")
         print(Color.END, end='')
         print()
-
-    print("Failed (%i): " % fails)
-    for test in sorted(tests_failed):
-        print(Color.ERR, end='')
-        print(test)
-        print(Color.END, end='')
-    print()
-
-    print("Ignored (%i): " % ignores)
-    for test in sorted(tests_ignored):
-        print(Color.WARN, end='')
-        print(test)
-        print(Color.END, end='')
-    print()
-
-    print("Passed (%i): " % passes)
-    if passes <= 50:
-        for test in tests_passed:
-            print(test)
-    else:
-        print('...')
 
     print("===================================")
     if crashes == 0 and fails == 0:
@@ -171,17 +192,14 @@ def main(test_dir):
         sys.exit(1)
 
 
-def cleanup_test_result(suite_name, line) -> str:
+def cleanup_test_result(line) -> str:
     # Unity test results are of the form:
     #   SOURCE_NAME:LINE_NO:TEST_NAME:RESULT
     #
-    # We strip the path from SOURCE_NAME to make the output a bit less spammy. Because each
-    # test suite is run twice (once with the reference implementation, once with the normal implementation),
-    # this output, would not be unique.
-    # Therefore we add the name of the test suite executable, which is unique.
+    # We strip the path from SOURCE_NAME to make the output a bit less spammy.
     parts = line.split(":")
     parts[0] = basename(parts[0])
-    return basename(suite_name) + " - " + ":".join(parts)
+    return ":".join(parts)
 
 
 if __name__ == '__main__':

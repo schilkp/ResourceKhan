@@ -2,6 +2,7 @@
 #include "string.h"
 #include "unity.h"
 #include "unity_internals.h"
+#include "utils.h"
 
 #include "pwr_tree.h"
 
@@ -20,14 +21,16 @@ bool EXPECT_INTERNAL_ASSERT = false;
 //              |
 //             c_c
 
+int mock_cb_update(const struct pt_node *self);
+
 // NODES:
-struct pt_node n_root = {.name = "root", .parent_count = 0};
-struct pt_node n_a = {.name = "n_a"};
-struct pt_node n_b = {.name = "n_b"};
-struct pt_node n_c = {.name = "n_c"};
+struct pt_node n_root = {.name = "root", .parent_count = 0, .cb_update = mock_cb_update};
+struct pt_node n_a = {.name = "n_a", .cb_update = mock_cb_update};
+struct pt_node n_b = {.name = "n_b", .cb_update = mock_cb_update};
+struct pt_node n_c = {.name = "n_c", .cb_update = mock_cb_update};
 
 struct pt_node *nodes[] = {&n_root, &n_a, &n_b, &n_c};
-struct pt pt = {.nodes = nodes, .count = sizeof(nodes) / sizeof(nodes[0]), .root = &n_root};
+struct pt pt = {.nodes = nodes, .node_count = sizeof(nodes) / sizeof(nodes[0]), .root = &n_root};
 
 // CLIENTS:
 struct pt_client c_a = {.name = "c_a"};
@@ -35,23 +38,18 @@ struct pt_client c_b1 = {.name = "c_b1"};
 struct pt_client c_b2 = {.name = "c_b2"};
 struct pt_client c_c = {.name = "c_c"};
 
-#define ASSERT_NODE(_node_, _state_)                                                                                   \
-  do {                                                                                                                 \
-    if (_state_) {                                                                                                     \
-      TEST_ASSERT_MESSAGE((_node_).enabled, "Node " #_node_ " is off but should be on.");                              \
-    } else {                                                                                                           \
-      TEST_ASSERT_MESSAGE(!(_node_).enabled, "Node " #_node_ " is on but should be off.");                             \
-    }                                                                                                                  \
-  } while (0)
-
-#define ASSERT_OK(_call_)  TEST_ASSERT_MESSAGE((_call_) == 0, "Call returned unexpected error")
-#define ASSERT_ERR(_call_) TEST_ASSERT_MESSAGE((_call_) != 0, "Call returned ok but expected error")
-
 void assert_tree_state_optimal(void) {
+  assert_tree_state_legal(&pt);
   ASSERT_NODE(n_root, c_a.enabled || c_b1.enabled || c_b2.enabled || c_c.enabled);
   ASSERT_NODE(n_a, c_a.enabled);
   ASSERT_NODE(n_b, c_b1.enabled || c_b2.enabled || c_c.enabled);
   ASSERT_NODE(n_c, c_c.enabled);
+}
+
+int mock_cb_update(const struct pt_node *self) {
+  (void)self;
+  assert_tree_state_legal(&pt);
+  return 0;
 }
 
 void init_tree(void) {
@@ -122,7 +120,8 @@ void test_optimise_1(void) {
 
   n_root.enabled = true;
   n_a.enabled = true;
-  pt_optimise(&n_root);
+
+  pt_optimise(&pt);
   assert_tree_state_optimal();
 }
 

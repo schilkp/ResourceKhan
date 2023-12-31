@@ -16,21 +16,30 @@
 #include "pwr_tree_conf.h"
 #endif /* PWR_TREE_USE_CUSTOM_CONF */
 
-// TODO
+/**
+ * @brief A power tree.
+ * Must be initialised with a pointer to an array containing pointers to all nodes,
+ * the length of said array (number of nodes), and a pointer to the root node.
+ */
 struct pt {
+  /** @brief Array of all nodes. */
   struct pt_node **nodes;
+
+  /** @brief Number of nodes in this tree. */
+  size_t node_count;
+
+  /** @brief Root of the tree. */
   struct pt_node *root;
-  size_t count;
+
+  /** @brief Scratch data used by implentation. Initialize to zero. */
+  struct pt_node *ll_topo_tail;
 };
 
-// TODO
+// Scratch data used by implentation.
 struct pt_ctx {
-  bool req_upd;
-
   struct pt_node *ll_trv;
-
-  struct pt_node *ll_upd;
-  bool is_upd;
+  struct pt_node *ll_topo_next;
+  struct pt_node *ll_topo_prev;
 };
 
 /**
@@ -140,19 +149,20 @@ struct pt_client {
  * @brief Enable a client in the power tree.
  * This ensures that all resources that it depends on are enabled from the root down.
  *
+ * @param pt power tree.
  * @param client client to be enabled.
  * @return 0 if successful, an error code returned by a node's cb_update callback otherwise.
  */
-int pt_enable_client(struct pt *tree, struct pt_client *client);
+int pt_enable_client(struct pt *pt, struct pt_client *client);
 
 /**
  * @brief Disable a client in the power tree.
  * This disables all resource from the client upwards that are no longer required.
  *
- * @param client client to be disabled.
+ * @param pt power tree.
  * @return 0 if successful, an error code returned by a node's cb_update callback otherwise.
  */
-int pt_disable_client(struct pt *tree, struct pt_client *client);
+int pt_disable_client(struct pt *pt, struct pt_client *client);
 
 /**
  * @brief Attempt to optimize the power tree.
@@ -160,10 +170,10 @@ int pt_disable_client(struct pt *tree, struct pt_client *client);
  * This may happen if a node's callback returns a non-zero value, indicating an error. Any
  * nodes that are found to be in such a state are disabled.
  *
- * @param root the root node of the tree.
+ * @param pt power tree.
  * @return 0 if successful, an error code returned by a node's cb_update callback otherwise.
  */
-int pt_optimise(struct pt_node *root);
+int pt_optimise(struct pt *pt);
 
 /**
  * @brief Add a child node to a node.
@@ -185,7 +195,14 @@ void pt_node_add_child(struct pt_node *node, struct pt_node *child);
  */
 void pt_node_add_client(struct pt_node *node, struct pt_client *client);
 
-// TODO
-int pt_init(struct pt *tree);
+/**
+ * @brief Initialise a power tree.
+ * Must be called after all nodes and clients have been added to the tree,
+ * and before the tree is used.
+ *
+ * @param pt power tree.
+ * @return 0 if successful, 1 if tree could not be initialised.
+ */
+int pt_init(struct pt *pt);
 
 #endif /* PWR_TREE_H_ */

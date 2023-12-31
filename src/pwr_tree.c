@@ -1,9 +1,8 @@
-/**
+/** 
  * @file pwr_tree.c
  * @brief Dynamic power resource manager.
  * @author Philipp Schilk 2023
  * https://github.com/schilkp/pwr_tree
- *
  */
 #include "pwr_tree.h"
 #include <string.h>
@@ -16,17 +15,21 @@ static int enable_node(struct pt *pt, struct pt_node *node);
 static int update_node(struct pt_node *node, bool new_state);
 static bool has_active_dependant(struct pt_node *node);
 
-static int inner_disable(struct pt_node *node, uint32_t current_depth);
-static int inner_optimise(struct pt_node *node, uint32_t current_depth);
+#define PWR_TREE_ASSERT_NO_NULLPTR(_pt_)                                                                               \
+  do {                                                                                                                 \
+    PWR_TREE_ASSERT(_pt_ != 0);                                                                                        \
+    PWR_TREE_ASSERT(_pt_->nodes != 0);                                                                                 \
+    PWR_TREE_ASSERT(_pt_->root != 0);                                                                                  \
+  } while (0)
 
 // ==== Public Functions =======================================================
 
-int pt_enable_client(struct pt *tree, struct pt_client *client) {
-  PWR_TREE_ASSERT(tree != 0);
+int pt_enable_client(struct pt *pt, struct pt_client *client) {
+  PWR_TREE_ASSERT_NO_NULLPTR(pt);
   PWR_TREE_ASSERT(client != 0);
 
   for (size_t i = 0; i < client->parent_count; i++) {
-    int err = enable_node(tree, client->parents[i]);
+    int err = enable_node(pt, client->parents[i]);
     if (err) return err;
   }
 
@@ -35,23 +38,31 @@ int pt_enable_client(struct pt *tree, struct pt_client *client) {
   return 0;
 }
 
-int pt_disable_client(struct pt *tree, struct pt_client *client) {
-  PWR_TREE_ASSERT(tree != 0);
+int pt_disable_client(struct pt *pt, struct pt_client *client) {
+  PWR_TREE_ASSERT_NO_NULLPTR(pt);
   PWR_TREE_ASSERT(client != 0);
 
   client->enabled = false;
 
-  for (size_t i = 0; i < client->parent_count; i++) {
-    int err = inner_disable(client->parents[i], 0);
+  return pt_optimise(pt);
+}
+
+int pt_optimise(struct pt *pt) {
+  PWR_TREE_ASSERT_NO_NULLPTR(pt);
+
+  // Traverse in reverse-topoligcal order, disabling all nodes if they no longer have
+  // any active dependant:
+  struct pt_node *node = pt->ll_topo_tail;
+
+  while (node != 0) {
+
+    int err = update_node(node, has_active_dependant(node));
     if (err) return err;
+
+    node = node->ctx.ll_topo_prev;
   }
 
   return 0;
-}
-
-int pt_optimise(struct pt_node *root) {
-  PWR_TREE_ASSERT(root != 0);
-  return inner_optimise(root, 0);
 }
 
 void pt_node_add_child(struct pt_node *node, struct pt_node *child) {
@@ -78,83 +89,145 @@ void pt_node_add_client(struct pt_node *node, struct pt_client *client) {
   client->parent_count++;
 }
 
-int pt_init(struct pt *tree) { return 0; }
+int pt_init(struct pt *pt) {
+  PWR_TREE_ASSERT_NO_NULLPTR(pt);
+
+  reset_ctx_all(pt);
+
+  // == Topological sort (Kahn's algorithm): ==
+
+  // The "topo" doubly-linked-list (stored in the nodes themselves) serves
+  // as the L list, storing all sorted nodes:
+  struct pt_node *ll_topo_tail = 0;
+
+  // The "trv" traversal single-linked list (also stored in the nodes themselves)
+  // serves as the S list, storing nodes that are not yet in L, but already have
+  // no parents when ignoring all nodes already in L. They are next candidates
+  // to be added to L.
+  struct pt_node *trv_head = pt->root;
+  struct pt_node *trv_tail = pt->root;
+
+  while (trv_head != 0) {
+    // Append trv_head to topo list (L):
+    if (ll_topo_tail == 0) {
+      ll_topo_tail = trv_head;
+    } else {
+      trv_head->ctx.ll_topo_prev = ll_topo_tail;
+      ll_topo_tail->ctx.ll_topo_next = trv_head;
+      ll_topo_tail = trv_head;
+    }
+
+    // Check all children nodes. If they no longer have any parents outside of
+    // L, add them to S:
+    for (size_t child_idx = 0; child_idx < trv_head->child_count; child_idx++) {
+      struct pt_node *node_to_check = trv_head->children[child_idx];
+
+      // Validate that this child is not inside L, which can only happen if the
+      // graph is not acyclic:
+      if (node_to_check->ctx.ll_topo_next != 0 || ll_topo_tail == node_to_check) {
+        // Cyclic graph. Abort.
+        PWR_TREE_ERR("Graph contains cycle, likely involving node %s!", node_to_check->name);
+        return 1;
+      }
+
+      bool has_parent_outside_l = false;
+      for (size_t parent_idx = 0; parent_idx < node_to_check->parent_count; parent_idx++) {
+        struct pt_node *parent = node_to_check->parents[parent_idx];
+
+        if (parent->ctx.ll_topo_next == 0 && parent != ll_topo_tail) { // Check if not in L.
+          has_parent_outside_l = true;
+          break;
+        }
+      }
+      if (!has_parent_outside_l) {
+        // Add to trv list (S):
+        trv_tail->ctx.ll_trv = node_to_check;
+        trv_tail = node_to_check;
+      }
+    }
+
+    // Advance traversal list (S), effectively removing the current node from it:
+    trv_head = trv_head->ctx.ll_trv;
+  }
+
+  // == Validate that graph is acyclic & connected ==
+  size_t topo_count = 0;
+  struct pt_node *ll_topo_head = pt->root;
+
+  while (ll_topo_head != 0) {
+    topo_count++;
+    ll_topo_head = ll_topo_head->ctx.ll_topo_next;
+  }
+
+  if (topo_count != pt->node_count) {
+    PWR_TREE_ERR("Graph malformed. It may contain nodes not in the node list, be cyclic or be disconnected. "
+                 "Topological list contains %zd elements, but graph claims to have %zd nodes!",
+                 topo_count, tree->count);
+    return 1;
+  }
+
+  pt->ll_topo_tail = ll_topo_tail;
+
+  return 0;
+}
 
 // ==== Private Functions ======================================================
 
 static void reset_ctx_all(struct pt *pt) {
-  for (size_t i = 0; i < pt->count; i++) {
+  for (size_t i = 0; i < pt->node_count; i++) {
     struct pt_ctx *ctx = &(pt->nodes[i]->ctx);
     memset(ctx, 0, sizeof(*ctx));
   }
 }
 
 static void reset_ctx_ll_trv(struct pt *pt) {
-  for (size_t i = 0; i < pt->count; i++) {
+  for (size_t i = 0; i < pt->node_count; i++) {
     struct pt_ctx *ctx = &(pt->nodes[i]->ctx);
     ctx->ll_trv = 0;
   }
 }
 
 static int enable_node(struct pt *pt, struct pt_node *node) {
-  // PWR_TREE_ASSERT(node != 0);
-  //
-  // reset_ctx_all(pt);
-  //
-  // // == STEP 1: Determine update order ==
-  //
-  // // Traverse upwards by flooding.
-  // // "Traverse" linked-list:
-  // struct pt_node *trv_head = node;
-  // struct pt_node *trv_tail = node;
-  // node->ctx.req_upd = true;
-  //
-  // while (trv_head != 0) {
-  //
-  //   for (size_t i = 0; i < trv_head->parent_count; i++) {
-  //     struct pt_node *parent = trv_head->parents[i];
-  //     PWR_TREE_ASSERT(parent != 0);
-  //
-  //     // Check if parent is already in "traverese" linked list:
-  //     if (parent->ctx.ll_trv == 0 && parent != trv_tail) {
-  //       parent->ctx.req_upd = true; // Must be updated.
-  //       trv_tail->ctx.ll_trv = parent;
-  //       trv_tail = parent;
-  //     }
-  //   }
-  //
-  //   trv_head = trv_head->ctx.ll_trv;
-  // }
-  //
-  // // == STEP 2: Traverse downwards from root to construct the update-order list: ==
-  //
-  // // "Traverse" linked-list:
-  // reset_ctx_ll_trv(pt);
-  // trv_head = pt->root;
-  // trv_tail = pt->root;
-  //
-  // // "Update" linked-list:
-  // struct pt_node *upd_head = node;
-  // struct pt_node *upd_tail = node;
-  //
-  // // Traverse by flooding from :
-  // while (trv_head != 0) {
-  //
-  //   for (size_t i = 0; i < trv_head->child_count; i++) {
-  //     struct pt_node *child = trv_head->children[i];
-  //     PWR_TREE_ASSERT(child != 0);
-  //   }
-  //
-  //   trv_head = trv_head->ctx.ll_trv;
-  // }
-  //
-  // // node = upd_head;
-  // // while (node != 0) {
-  // //   int err = update_node(node, true);
-  // //   if (err) return err;
-  // //   node = node->ctx.upd;
-  // // }
-  //
+
+  // == STEP 1: Flood from node up to root to discover all nodes which require an update ==
+
+  reset_ctx_ll_trv(pt);
+
+  // "Traverse" linked-list:
+  struct pt_node *trv_head = node;
+  struct pt_node *trv_tail = node;
+
+  while (trv_head != 0) {
+
+    for (size_t i = 0; i < trv_head->parent_count; i++) {
+      struct pt_node *parent = trv_head->parents[i];
+      PWR_TREE_ASSERT(parent != 0);
+
+      // Check if parent is already in "traverse" linked list:
+      if (parent->ctx.ll_trv == 0 && parent != trv_tail) {
+        // Parent not already in list. Append:
+        trv_tail->ctx.ll_trv = parent;
+        trv_tail = parent;
+      }
+    }
+
+    trv_head = trv_head->ctx.ll_trv;
+  }
+
+  // == STEP 2: Traverse in topological order, enabling all nodes that were traversed in step 1 ==
+
+  struct pt_node *topo_head = pt->root;
+  while (topo_head != 0) {
+
+    // Check if this node is in the "traverse" list:
+    if (topo_head->ctx.ll_trv != 0 || topo_head == trv_tail) {
+      int err = update_node(topo_head, true);
+      if (err) return err;
+    }
+
+    topo_head = topo_head->ctx.ll_topo_next;
+  }
+
   return 0;
 }
 
@@ -179,8 +252,8 @@ static int update_node(struct pt_node *node, bool new_state) {
   return 0;
 }
 
+// Check if a given node has any children or clients that are active.
 static bool has_active_dependant(struct pt_node *node) {
-  PWR_TREE_ASSERT(node != 0);
   for (size_t i = 0; i < node->child_count; i++) {
     PWR_TREE_ASSERT(node->children[i] != 0);
     if (node->children[i]->enabled) {
@@ -194,58 +267,4 @@ static bool has_active_dependant(struct pt_node *node) {
     }
   }
   return false;
-}
-
-//// TO REMOVE
-#define PWR_TREE_MAX_DEPTH 10
-static int inner_disable(struct pt_node *node, uint32_t current_depth) {
-  PWR_TREE_ASSERT(node != 0);
-  PWR_TREE_ASSERT(current_depth != PWR_TREE_MAX_DEPTH);
-  if (current_depth == PWR_TREE_MAX_DEPTH) {
-    return -1;
-  }
-
-  bool new_state = has_active_dependant(node);
-  node->previous_state = node->enabled;
-  node->enabled = new_state;
-  if (node->previous_state != node->enabled) {
-    PWR_TREE_INF("%s: %d -> %d", node->name, node->previous_state, node->enabled);
-  }
-  if (node->cb_update != 0) {
-    int err = node->cb_update(node);
-    node->previous_cb_return = err;
-    if (err) {
-      PWR_TREE_ERR("%s: Callback returned error %i! Tree in non-optiomal state.", node->name, err);
-      node->enabled = node->previous_state;
-      return err;
-    }
-  }
-
-  for (size_t i = 0; i < node->parent_count; i++) {
-    int err = inner_disable(node->parents[i], current_depth + 1);
-    if (err) return err;
-  }
-
-  return 0;
-}
-
-static int inner_optimise(struct pt_node *node, uint32_t current_depth) {
-  PWR_TREE_ASSERT(node != 0);
-  PWR_TREE_ASSERT(current_depth != PWR_TREE_MAX_DEPTH);
-  if (current_depth == PWR_TREE_MAX_DEPTH) {
-    return -1;
-  }
-
-  if (node->enabled && !has_active_dependant(node)) {
-    PWR_TREE_INF("Node %s enabled without active dependants!", node->name);
-    int err = inner_disable(node, 0);
-    if (err) return err;
-  }
-
-  for (size_t i = 0; i < node->child_count; i++) {
-    int err = inner_optimise(node->children[i], current_depth + 1);
-    if (err) return err;
-  }
-
-  return 0;
 }
