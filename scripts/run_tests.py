@@ -1,6 +1,7 @@
-import sys
-from os.path import basename, splitext
+import os
 import subprocess
+import sys
+from os.path import basename, isfile, join, splitext
 
 
 class Color:
@@ -11,19 +12,29 @@ class Color:
     END = '\33[0m'
 
 
-def main(test_suites):
-    tests_crashed = []
-    tests_passed = []
-    tests_failed = []
-    tests_ignored = []
+def main(test_dir):
+
+    test_suites = []
+
+    for file in os.listdir(test_dir):
+        if file.endswith(".test"):
+            continue
+        test = join(test_dir, file)
+        if isfile(test):
+            test_suites.append(test)
+
+    # Print message and exit if there where no tests passed:
+    if len(test_suites) == 0:
+        print("No test suites found.")
+        sys.exit(0)
 
     # Empty line to clean up makefile output a bit.
     print()
 
-    # Print message and exit if there where no tests passed:
-    if len(test_suites) == 0:
-        print("No test suites specified.")
-        sys.exit(0)
+    tests_crashed = []
+    tests_passed = []
+    tests_failed = []
+    tests_ignored = []
 
     # Run every test
     for test_suite in test_suites:
@@ -55,12 +66,12 @@ def main(test_suites):
                     # Report finished
                     break
                 elif ':PASS' in line:
-                    tests_passed.append(line)
+                    tests_passed.append(cleanup_test_result(test_suite, line))
                 elif ':FAIL' in line:
-                    tests_failed.append(line)
+                    tests_failed.append(cleanup_test_result(test_suite, line))
                     suite_fail_count += 1
                 elif ':IGNORE' in line:
-                    tests_ignored.append(line)
+                    tests_ignored.append(cleanup_test_result(test_suite, line))
                 elif ':INFO' in line:
                     print(Color.INFO, end='')
                     print(line)
@@ -117,20 +128,20 @@ def main(test_suites):
     if crashes != 0:
         print("Crashed test suites (%i):" % crashes)
         print(Color.ERR, end='')
-        for suite in tests_crashed:
+        for suite in sorted(tests_crashed):
             print(suite)
         print(Color.END, end='')
         print()
 
     print("Failed (%i): " % fails)
-    for test in tests_failed:
+    for test in sorted(tests_failed):
         print(Color.ERR, end='')
         print(test)
         print(Color.END, end='')
     print()
 
     print("Ignored (%i): " % ignores)
-    for test in tests_ignored:
+    for test in sorted(tests_ignored):
         print(Color.WARN, end='')
         print(test)
         print(Color.END, end='')
@@ -160,7 +171,23 @@ def main(test_suites):
         sys.exit(1)
 
 
+def cleanup_test_result(suite_name, line) -> str:
+    # Unity test results are of the form:
+    #   SOURCE_NAME:LINE_NO:TEST_NAME:RESULT
+    #
+    # We strip the path from SOURCE_NAME to make the output a bit less spammy. Because each
+    # test suite is run twice (once with the reference implementation, once with the normal implementation),
+    # this output, would not be unique.
+    # Therefore we add the name of the test suite executable, which is unique.
+    parts = line.split(":")
+    parts[0] = basename(parts[0])
+    return basename(suite_name) + " - " + ":".join(parts)
+
+
 if __name__ == '__main__':
     args = sys.argv.copy()
     path = args.pop(0)
-    main(args)
+    if len(args) != 1:
+        print("Error! Must specify directory with test binaries as only argument!")
+        exit(1)
+    main(args[0])

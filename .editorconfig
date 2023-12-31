@@ -9,8 +9,3 @@ insert_final_newline = true
 [*.{h,c}]
 indent_style = space
 indent_size = 2
-
-# Tab indentation (no size specified)
-[makefile]
-indent_style = tab
-

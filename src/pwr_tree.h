@@ -16,11 +16,28 @@
 #include "pwr_tree_conf.h"
 #endif /* PWR_TREE_USE_CUSTOM_CONF */
 
+// TODO
+struct pt {
+  struct pt_node **nodes;
+  struct pt_node *root;
+  size_t count;
+};
+
+// TODO
+struct pt_ctx {
+  bool req_upd;
+
+  struct pt_node *ll_trv;
+
+  struct pt_node *ll_upd;
+  bool is_upd;
+};
+
 /**
  * @brief A node in the power tree
  * Represents an automatically managed resource, such as a regulator or power switch.
  */
-struct pwr_tree_node {
+struct pt_node {
   /** @brief Node name/indentifier.  */
   char name[PWR_TREE_MAX_NAME_LEN + 1];
 
@@ -34,7 +51,6 @@ struct pwr_tree_node {
    * If initialized as 'enabled', ensure that at at least one (possibly) indirect client is also
    * enabled. Otherwise this resource, although not required, will not be disabled until a client
    * which depends on it is enabled and disabled again.
-   * TODO FIXME Provide some 'tree update/init' mechanism?
    */
   bool enabled;
 
@@ -67,7 +83,7 @@ struct pwr_tree_node {
    *
    * @return 0 if update successful, negative otherwise.
    */
-  int (*cb_update)(const struct pwr_tree_node *self);
+  int (*cb_update)(const struct pt_node *self);
 
   /**
    * @brief Number of parent nodes
@@ -79,23 +95,26 @@ struct pwr_tree_node {
    * @brief Pointer to parent nodes.
    * @note May only be empty for the root node
    */
-  struct pwr_tree_node *parents[PWR_TREE_MAX_PARENTS];
+  struct pt_node *parents[PWR_TREE_MAX_PARENTS];
 
   /** @brief Number of children nodes. */
   uint32_t child_count;
 
   /** @brief Pointer to child nodes. */
-  struct pwr_tree_node *children[PWR_TREE_MAX_CHILDREN];
+  struct pt_node *children[PWR_TREE_MAX_CHILDREN];
 
   /** @brief Number of clients. */
   uint32_t client_count;
 
   /** @brief Pointer to clients. */
-  struct pwr_tree_client *clients[PWR_TREE_MAX_CHILDREN];
+  struct pt_client *clients[PWR_TREE_MAX_CHILDREN];
+
+  /** @brief Scratch data used by implentation. Initialize to zero. */
+  struct pt_ctx ctx;
 };
 
 /** @brief A client that requires power from some tree nodes */
-struct pwr_tree_client {
+struct pt_client {
   /** @brief Client name/identifier.  */
   char name[PWR_TREE_MAX_NAME_LEN + 1];
 
@@ -114,7 +133,7 @@ struct pwr_tree_client {
   uint32_t parent_count;
 
   /** @brief The nodes representing the resources this client requires */
-  struct pwr_tree_node *parents[PWR_TREE_MAX_PARENTS];
+  struct pt_node *parents[PWR_TREE_MAX_PARENTS];
 };
 
 /**
@@ -124,7 +143,7 @@ struct pwr_tree_client {
  * @param client client to be enabled.
  * @return 0 if successful, an error code returned by a node's cb_update callback otherwise.
  */
-int pwr_tree_enable_client(struct pwr_tree_client *client);
+int pt_enable_client(struct pt *tree, struct pt_client *client);
 
 /**
  * @brief Disable a client in the power tree.
@@ -133,7 +152,7 @@ int pwr_tree_enable_client(struct pwr_tree_client *client);
  * @param client client to be disabled.
  * @return 0 if successful, an error code returned by a node's cb_update callback otherwise.
  */
-int pwr_tree_disable_client(struct pwr_tree_client *client);
+int pt_disable_client(struct pt *tree, struct pt_client *client);
 
 /**
  * @brief Attempt to optimize the power tree.
@@ -144,24 +163,29 @@ int pwr_tree_disable_client(struct pwr_tree_client *client);
  * @param root the root node of the tree.
  * @return 0 if successful, an error code returned by a node's cb_update callback otherwise.
  */
-int pwr_tree_optimise(struct pwr_tree_node *root);
+int pt_optimise(struct pt_node *root);
 
 /**
- * @brief Utility function to add a child node to a node.
+ * @brief Add a child node to a node.
  * Updates the child's parent pointer, and the parent's child_count and children pointers.
  *
+ * @warning This un-initialises the tree. Must call pt_init() before using the tree.
  * @param node node to receive new child
  * @param child child to be added
  */
-void pwr_tree_add_child(struct pwr_tree_node *node, struct pwr_tree_node *child);
+void pt_node_add_child(struct pt_node *node, struct pt_node *child);
 
 /**
- * @brief Utility function to add a client to a node.
+ * @brief Add a client to a node.
  * Updates the client's parent pointer, and the parent's client_count and client pointers.
  *
+ * @warning This un-initialises the tree. Must call pt_init() before using the tree.
  * @param node node to receive new child
  * @param child child to be added
  */
-void pwr_tree_add_client(struct pwr_tree_node *node, struct pwr_tree_client *client);
+void pt_node_add_client(struct pt_node *node, struct pt_client *client);
+
+// TODO
+int pt_init(struct pt *tree);
 
 #endif /* PWR_TREE_H_ */

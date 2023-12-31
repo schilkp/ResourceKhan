@@ -35,51 +35,52 @@ bool EXPECT_INTERNAL_ASSERT = false;
 // parents n_a, n_d, and n_e.
 
 // NODES:
-struct pwr_tree_node n_root = {.name = "n_root"};
-struct pwr_tree_node n_a = {.name = "n_a"};
-struct pwr_tree_node n_b = {.name = "n_b"};
-struct pwr_tree_node n_c = {.name = "n_c"};
-struct pwr_tree_node n_d = {.name = "n_d"};
-struct pwr_tree_node n_e = {.name = "n_e"};
-struct pwr_tree_node n_f = {.name = "n_f"};
-struct pwr_tree_node n_g = {.name = "n_g"};
-// CLIENTS:
-struct pwr_tree_client c_root = {.name = "c_root"};
-struct pwr_tree_client c_a = {.name = "c_a"};
-struct pwr_tree_client c_b = {.name = "c_b"};
-struct pwr_tree_client c_c = {.name = "c_c"};
-struct pwr_tree_client c_d = {.name = "c_d"};
-struct pwr_tree_client c_e = {.name = "c_e"};
-struct pwr_tree_client c_f = {.name = "c_f"};
-struct pwr_tree_client c_g1 = {.name = "c_g1"};
-struct pwr_tree_client c_g2 = {.name = "c_g2"};
-struct pwr_tree_client c_many = {.name = "c_many"};
+struct pt_node n_root = {.name = "n_root"};
+struct pt_node n_a = {.name = "n_a"};
+struct pt_node n_b = {.name = "n_b"};
+struct pt_node n_c = {.name = "n_c"};
+struct pt_node n_d = {.name = "n_d"};
+struct pt_node n_e = {.name = "n_e"};
+struct pt_node n_f = {.name = "n_f"};
+struct pt_node n_g = {.name = "n_g"};
 
-#define ASSERT_NODE(_node_, _state_)                                                               \
-  do {                                                                                             \
-    if (_state_) {                                                                                 \
-      TEST_ASSERT_MESSAGE((_node_).enabled, "Node " #_node_ " is off but should be on.");          \
-    } else {                                                                                       \
-      TEST_ASSERT_MESSAGE(!(_node_).enabled, "Node " #_node_ " is on but should be off.");         \
-    }                                                                                              \
+struct pt_node *nodes[] = {&n_root, &n_a, &n_b, &n_c, &n_e, &n_f, &n_g};
+struct pt pt = {.nodes = nodes, .count = sizeof(nodes) / sizeof(nodes[0]), .root = &n_root};
+
+// CLIENTS:
+struct pt_client c_root = {.name = "c_root"};
+struct pt_client c_a = {.name = "c_a"};
+struct pt_client c_b = {.name = "c_b"};
+struct pt_client c_c = {.name = "c_c"};
+struct pt_client c_d = {.name = "c_d"};
+struct pt_client c_e = {.name = "c_e"};
+struct pt_client c_f = {.name = "c_f"};
+struct pt_client c_g1 = {.name = "c_g1"};
+struct pt_client c_g2 = {.name = "c_g2"};
+struct pt_client c_many = {.name = "c_many"};
+
+#define ASSERT_NODE(_node_, _state_)                                                                                   \
+  do {                                                                                                                 \
+    if (_state_) {                                                                                                     \
+      TEST_ASSERT_MESSAGE((_node_).enabled, "Node " #_node_ " is off but should be on.");                              \
+    } else {                                                                                                           \
+      TEST_ASSERT_MESSAGE(!(_node_).enabled, "Node " #_node_ " is on but should be off.");                             \
+    }                                                                                                                  \
   } while (0)
 
-#define ASSERT_OK(_call_) TEST_ASSERT_MESSAGE((_call_) == 0, "Call returned unexpected error")
+#define ASSERT_OK(_call_)  TEST_ASSERT_MESSAGE((_call_) == 0, "Call returned unexpected error")
 #define ASSERT_ERR(_call_) TEST_ASSERT_MESSAGE((_call_) != 0, "Call returned ok but expected error")
 
 void assert_tree_state_optimal(void) {
-  ASSERT_NODE(n_root, c_root.enabled || c_a.enabled || c_b.enabled || c_c.enabled || c_d.enabled ||
-                          c_e.enabled || c_f.enabled || c_g1.enabled || c_g2.enabled ||
-                          c_many.enabled);
+  ASSERT_NODE(n_root, c_root.enabled || c_a.enabled || c_b.enabled || c_c.enabled || c_d.enabled || c_e.enabled ||
+                          c_f.enabled || c_g1.enabled || c_g2.enabled || c_many.enabled);
 
-  ASSERT_NODE(n_a, c_a.enabled || c_c.enabled || c_d.enabled || c_e.enabled || c_f.enabled ||
-                       c_g1.enabled || c_g2.enabled || c_many.enabled);
+  ASSERT_NODE(n_a, c_a.enabled || c_c.enabled || c_d.enabled || c_e.enabled || c_f.enabled || c_g1.enabled ||
+                       c_g2.enabled || c_many.enabled);
 
-  ASSERT_NODE(n_b, c_b.enabled || c_e.enabled || c_f.enabled || c_g1.enabled || c_g2.enabled ||
-                       c_many.enabled);
+  ASSERT_NODE(n_b, c_b.enabled || c_e.enabled || c_f.enabled || c_g1.enabled || c_g2.enabled || c_many.enabled);
 
-  ASSERT_NODE(n_c, c_c.enabled || c_e.enabled || c_f.enabled || c_g1.enabled || c_g2.enabled ||
-                       c_many.enabled);
+  ASSERT_NODE(n_c, c_c.enabled || c_e.enabled || c_f.enabled || c_g1.enabled || c_g2.enabled || c_many.enabled);
 
   ASSERT_NODE(n_d, c_d.enabled || c_f.enabled || c_g1.enabled || c_g2.enabled || c_many.enabled);
 
@@ -91,68 +92,78 @@ void assert_tree_state_optimal(void) {
 }
 
 void init_tree(void) {
-  pwr_tree_add_child(&n_root, &n_a);
-  pwr_tree_add_child(&n_root, &n_b);
-  pwr_tree_add_client(&n_root, &c_root);
 
-  pwr_tree_add_child(&n_a, &n_d);
-  pwr_tree_add_child(&n_a, &n_c);
-  pwr_tree_add_child(&n_b, &n_e);
-  pwr_tree_add_client(&n_a, &c_a);
-  pwr_tree_add_client(&n_a, &c_many);
-  pwr_tree_add_client(&n_b, &c_b);
-  pwr_tree_add_client(&n_c, &c_c);
+  pt_node_add_child(&n_root, &n_a);
+  pt_node_add_child(&n_root, &n_b);
+  pt_node_add_client(&n_root, &c_root);
 
-  pwr_tree_add_child(&n_d, &n_f);
-  pwr_tree_add_child(&n_c, &n_e);
-  pwr_tree_add_client(&n_d, &c_d);
-  pwr_tree_add_client(&n_d, &c_many);
-  pwr_tree_add_client(&n_c, &c_c);
+  pt_node_add_child(&n_a, &n_d);
+  pt_node_add_child(&n_a, &n_c);
+  pt_node_add_child(&n_b, &n_e);
+  pt_node_add_client(&n_a, &c_a);
+  pt_node_add_client(&n_a, &c_many);
+  pt_node_add_client(&n_b, &c_b);
+  pt_node_add_client(&n_c, &c_c);
 
-  pwr_tree_add_child(&n_e, &n_f);
-  pwr_tree_add_client(&n_e, &c_e);
-  pwr_tree_add_client(&n_e, &c_many);
+  pt_node_add_child(&n_d, &n_f);
+  pt_node_add_child(&n_c, &n_e);
+  pt_node_add_client(&n_d, &c_d);
+  pt_node_add_client(&n_d, &c_many);
+  pt_node_add_client(&n_c, &c_c);
 
-  pwr_tree_add_child(&n_f, &n_g);
-  pwr_tree_add_client(&n_f, &c_f);
+  pt_node_add_child(&n_e, &n_f);
+  pt_node_add_client(&n_e, &c_e);
+  pt_node_add_client(&n_e, &c_many);
 
-  pwr_tree_add_client(&n_g, &c_g1);
-  pwr_tree_add_client(&n_g, &c_g2);
+  pt_node_add_child(&n_f, &n_g);
+  pt_node_add_client(&n_f, &c_f);
+
+  pt_node_add_client(&n_g, &c_g1);
+  pt_node_add_client(&n_g, &c_g2);
 }
 
 // ======== Tests ==================================================================================
 
 void test_complex_1(void) {
+
+  ASSERT_OK(pt_init(&pt));
+
   assert_tree_state_optimal();
-  ASSERT_OK(pwr_tree_enable_client(&c_f));
+  ASSERT_OK(pt_enable_client(&pt, &c_f));
   assert_tree_state_optimal();
-  ASSERT_OK(pwr_tree_disable_client(&c_f));
+  ASSERT_OK(pt_disable_client(&pt, &c_f));
   assert_tree_state_optimal();
 }
 
 void test_complex_2(void) {
+
+  ASSERT_OK(pt_init(&pt));
+
   assert_tree_state_optimal();
-  ASSERT_OK(pwr_tree_enable_client(&c_g1));
+  ASSERT_OK(pt_enable_client(&pt, &c_g1));
   assert_tree_state_optimal();
-  ASSERT_OK(pwr_tree_enable_client(&c_g2));
+  ASSERT_OK(pt_enable_client(&pt, &c_g2));
   assert_tree_state_optimal();
-  ASSERT_OK(pwr_tree_disable_client(&c_g1));
+  ASSERT_OK(pt_disable_client(&pt, &c_g1));
   assert_tree_state_optimal();
-  ASSERT_OK(pwr_tree_disable_client(&c_g2));
+  ASSERT_OK(pt_disable_client(&pt, &c_g2));
   assert_tree_state_optimal();
 }
 
 void test_many_parent_nodes(void) {
+
+  ASSERT_OK(pt_init(&pt));
+
   assert_tree_state_optimal();
-  ASSERT_OK(pwr_tree_enable_client(&c_many));
+  ASSERT_OK(pt_enable_client(&pt, &c_many));
   assert_tree_state_optimal();
-  ASSERT_OK(pwr_tree_disable_client(&c_many));
+  ASSERT_OK(pt_disable_client(&pt, &c_many));
   assert_tree_state_optimal();
-  ASSERT_OK(pwr_tree_enable_client(&c_many));
+  ASSERT_OK(pt_enable_client(&pt, &c_many));
   assert_tree_state_optimal();
-  ASSERT_OK(pwr_tree_enable_client(&c_e));
+  ASSERT_OK(pt_enable_client(&pt, &c_e));
   assert_tree_state_optimal();
-  ASSERT_OK(pwr_tree_enable_client(&c_d));
+  ASSERT_OK(pt_enable_client(&pt, &c_d));
   assert_tree_state_optimal();
 }
 
