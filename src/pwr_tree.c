@@ -1,4 +1,4 @@
-/** 
+/**
  * @file pwr_tree.c
  * @brief Dynamic power resource manager.
  * @author Philipp Schilk 2023
@@ -139,8 +139,14 @@ int pt_init(struct pt *pt) {
           break;
         }
       }
+
+      // Add to trv list (S):
       if (!has_parent_outside_l) {
-        // Add to trv list (S):
+        // Check if node_to_check is already in S, which can happen
+        // if the node contains redundant parallel edges between nodes:
+        if (node_to_check->ctx.ll_trv != 0 || node_to_check == trv_tail) {
+          continue;
+        }
         trv_tail->ctx.ll_trv = node_to_check;
         trv_tail = node_to_check;
       }

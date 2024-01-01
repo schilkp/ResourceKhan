@@ -49,7 +49,8 @@ endfunction()
 
 
 add_pt_double_test(test/test_basic.c)
-add_pt_double_test(test/test_complex.c)
+add_pt_double_test(test/test_complex1.c)
+add_pt_double_test(test/test_complex2.c)
 add_pt_double_test(test/test_detect_loop1.c)
 add_pt_double_test(test/test_detect_loop2.c)
 add_pt_double_test(test/test_detect_loop3.c)

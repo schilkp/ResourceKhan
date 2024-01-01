@@ -122,7 +122,7 @@ void init_tree(void) {
 
 // ======== Tests ==================================================================================
 
-void test_complex_1(void) {
+void test_complex1_1(void) {
 
   ASSERT_OK(pt_init(&pt));
 
@@ -133,7 +133,7 @@ void test_complex_1(void) {
   assert_tree_state_optimal();
 }
 
-void test_complex_2(void) {
+void test_complex1_2(void) {
 
   ASSERT_OK(pt_init(&pt));
 
@@ -193,8 +193,8 @@ void tearDown(void) {}
 int main(void) {
   init_tree();
   UNITY_BEGIN();
-  RUN_TEST(test_complex_1);
-  RUN_TEST(test_complex_2);
+  RUN_TEST(test_complex1_1);
+  RUN_TEST(test_complex1_2);
   RUN_TEST(test_many_parent_nodes);
   return UNITY_END();
 }
