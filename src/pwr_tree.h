@@ -90,8 +90,8 @@ struct pt_node {
    * @brief Update callback
    * @note Optional.
    * @param Pointer to node being updated.
-   * Called when node's state changes, any dependent client (direct or indirect) is enabled, when
-   * the tree is optimized, or when any client is disabled.
+   * Called when node's state changes, any dependent client (direct or indirect) is enabled or disabled,
+   * or when the tree is optimized.
    *
    * - Use self->desired_state to determine if this resources should be turned on or off.
    * - Use self->state to determine if the node is currently enabled.
@@ -100,8 +100,6 @@ struct pt_node {
    * - If this callback needs to check the state of any other nodes (for example the state of parents or children),
    *   Note that other_node->state indicates the current state of the node, while other_node->desired_state
    *   inidcates the state that the power tree will attempt to set the node to during this update.
-   *
-   * TODO: Only update during disable if a dependent was disabled?
    *
    * @warning This callback should *not* change the value of self->state.
    * @return 0 if update successful and this node is now in the state self->desired_state,

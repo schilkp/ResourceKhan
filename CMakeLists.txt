@@ -55,5 +55,6 @@ add_pt_double_test(test/test_detect_loop1.c)
 add_pt_double_test(test/test_detect_loop2.c)
 add_pt_double_test(test/test_detect_loop3.c)
 add_pt_double_test(test/test_cb_errors.c)
+add_pt_double_test(test/test_cb_calls.c)
 
 add_pt_test(test/test_catch_nullptr.c)

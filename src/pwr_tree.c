@@ -12,6 +12,7 @@
 static void reset_ctx_all(struct pt *pt);
 static void reset_ctx_ll_trv(struct pt *pt);
 static int enable_node(struct pt *pt, struct pt_node *node);
+static int optimize_node(struct pt *pt, struct pt_node *node);
 static int update_node(struct pt_node *node, bool new_state);
 static bool has_active_dependant(struct pt_node *node);
 
@@ -44,7 +45,12 @@ int pt_disable_client(struct pt *pt, struct pt_client *client) {
 
   client->enabled = false;
 
-  return pt_optimize(pt);
+  for (size_t i = 0; i < client->parent_count; i++) {
+    int err = optimize_node(pt, client->parents[i]);
+    if (err) return err;
+  }
+
+  return 0;
 }
 
 int pt_optimize(struct pt *pt) {
@@ -232,6 +238,50 @@ static int enable_node(struct pt *pt, struct pt_node *node) {
     }
 
     topo_head = topo_head->ctx.ll_topo_next;
+  }
+
+  return 0;
+}
+
+static int optimize_node(struct pt *pt, struct pt_node *node) {
+
+  // == STEP 1: Flood from node up to root to discover all nodes which require an update ==
+
+  reset_ctx_ll_trv(pt);
+
+  // "Traverse" linked-list:
+  struct pt_node *trv_head = node;
+  struct pt_node *trv_tail = node;
+
+  while (trv_head != 0) {
+
+    for (size_t i = 0; i < trv_head->parent_count; i++) {
+      struct pt_node *parent = trv_head->parents[i];
+      PWR_TREE_ASSERT(parent != 0);
+
+      // Check if parent is already in "traverse" linked list:
+      if (parent->ctx.ll_trv == 0 && parent != trv_tail) {
+        // Parent not already in list. Append:
+        trv_tail->ctx.ll_trv = parent;
+        trv_tail = parent;
+      }
+    }
+
+    trv_head = trv_head->ctx.ll_trv;
+  }
+
+  // == STEP 2: Traverse in reverse-topological order, updating all nodes ==
+
+  struct pt_node *topo_tail = pt->ll_topo_tail;
+  while (topo_tail != 0) {
+
+    // Check if this node is in the "traverse" list:
+    if (topo_tail->ctx.ll_trv != 0 || topo_tail == trv_tail) {
+      int err = update_node(topo_tail, has_active_dependant(topo_tail));
+      if (err) return err;
+    }
+
+    topo_tail = topo_tail->ctx.ll_topo_prev;
   }
 
   return 0;
