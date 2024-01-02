@@ -165,6 +165,35 @@ void test_many_parent_nodes(void) {
   assert_tree_state_optimal();
 }
 
+void test_complex1_optimize1(void) {
+
+  ASSERT_OK(pt_init(&pt));
+
+  n_root.state = true;
+  n_a.state = true;
+  n_d.state = true;
+  n_b.state = true;
+
+  assert_tree_state_legal(&pt);
+
+  pt_optimize(&pt);
+  assert_tree_state_optimal();
+}
+
+void test_complex1_optimize2(void) {
+
+  ASSERT_OK(pt_init(&pt));
+
+  for(size_t i = 0; i < pt.node_count; i++) {
+    pt.nodes[i]->state = true;
+  }
+
+  assert_tree_state_legal(&pt);
+  pt_optimize(&pt);
+  assert_tree_state_optimal();
+}
+
+
 // ======== Main ===================================================================================
 
 void setUp(void) {
@@ -196,5 +225,7 @@ int main(void) {
   RUN_TEST(test_complex1_1);
   RUN_TEST(test_complex1_2);
   RUN_TEST(test_many_parent_nodes);
+  RUN_TEST(test_complex1_optimize1);
+  RUN_TEST(test_complex1_optimize2);
   return UNITY_END();
 }

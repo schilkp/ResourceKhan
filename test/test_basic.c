@@ -114,12 +114,14 @@ void test_basic_3(void) {
   assert_tree_state_optimal();
 }
 
-void test_optimise_1(void) {
+void test_basic_optimize_1(void) {
 
   ASSERT_OK(pt_init(&pt));
 
   n_root.state = true;
   n_a.state = true;
+
+  assert_tree_state_legal(&pt);
 
   pt_optimize(&pt);
   assert_tree_state_optimal();
@@ -146,6 +148,6 @@ int main(void) {
   RUN_TEST(test_basic_1);
   RUN_TEST(test_basic_2);
   RUN_TEST(test_basic_3);
-  RUN_TEST(test_optimise_1);
+  RUN_TEST(test_basic_optimize_1);
   return UNITY_END();
 }
