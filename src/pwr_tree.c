@@ -238,21 +238,26 @@ static int enable_node(struct pt *pt, struct pt_node *node) {
 }
 
 static int update_node(struct pt_node *node, bool new_state) {
-  node->previous_state = node->enabled;
-  node->enabled = new_state;
+  node->desired_state = new_state;
 
-  if (node->previous_state != node->enabled) {
+  if (node->desired_state != node->state) {
     PWR_TREE_INF("%s: %d -> %d", node->name, node->previous_state, node->enabled);
   }
 
   if (node->cb_update != 0) {
+    // Attempt to update note using callback:
     int err = node->cb_update(node);
     node->previous_cb_return = err;
     if (err) {
-      PWR_TREE_ERR("%s: Callback returned error %i! Tree in non-optimal state.", node->name, err);
-      node->enabled = node->previous_state;
+      PWR_TREE_ERR("%s: Callback returned error %i! Tree in non-optimal state. Node left %d.", node->name, err,
+                   node->state);
       return err;
+    } else {
+      node->state = new_state;
     }
+  } else {
+    // Update cannot fail if there is no update.
+    node->state = new_state;
   }
 
   return 0;
@@ -262,7 +267,7 @@ static int update_node(struct pt_node *node, bool new_state) {
 static bool has_active_dependant(struct pt_node *node) {
   for (size_t i = 0; i < node->child_count; i++) {
     PWR_TREE_ASSERT(node->children[i] != 0);
-    if (node->children[i]->enabled) {
+    if (node->children[i]->state) {
       return true;
     }
   }

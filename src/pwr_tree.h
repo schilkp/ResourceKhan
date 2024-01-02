@@ -51,7 +51,7 @@ struct pt_node {
   char name[PWR_TREE_MAX_NAME_LEN + 1];
 
   /**
-   * @brief Current state of this node.
+   * @brief Current state of this node. True if this node is enabled.
    * @warning Do not modify directly. Automatically managed by enable_client/disable_client functions.
    *
    * Initialize to actual state of managed resource.
@@ -60,7 +60,7 @@ struct pt_node {
    * will be left in an non-optimal state, until a child/client is enabled or the tree is
    * optimized.
    */
-  bool enabled;
+  bool state;
 
   /**
    * @brief Number of parent nodes
@@ -93,24 +93,21 @@ struct pt_node {
    * Called when node's state changes, any dependent client (direct or indirect) is enabled, when
    * the tree is optimized, or when any client is disabled.
    *
-   * - Use self->enabled to determine if this resources should be turned on or off.
-   * - Use self->previous_state to determine if the was enabled before this tree update.
+   * - Use self->desired_state to determine if this resources should be turned on or off.
+   * - Use self->state to determine if the node is currently enabled.
    * - Use self->previous_cb_return to check the return value of this node's callback during the
    *   last update.
+   * - If this callback needs to check the state of any other nodes (for example the state of parents or children),
+   *   Note that other_node->state indicates the current state of the node, while other_node->desired_state
+   *   inidcates the state that the power tree will attempt to set the node to during this update.
    *
-   * TODO: Implement "desired state"?
    * TODO: Only update during disable if a dependent was disabled?
    *
-   * @return 0 if update successful, negative otherwise.
+   * @warning This callback should *not* change the value of self->state.
+   * @return 0 if update successful and this node is now in the state self->desired_state,
+   *         any non-zero number if this update failed.
    */
   int (*cb_update)(const struct pt_node *self);
-
-  /**
-   * @brief Previous state of this node
-   * @warning only valid during cb_update call.
-   * Initialization does not matter.
-   */
-  bool previous_state;
 
   /**
    * @brief Previous return value of the node's callback.
@@ -118,6 +115,13 @@ struct pt_node {
    * Initialization does not matter.
    */
   int previous_cb_return;
+
+  /**
+   * @brief State that this node should be set to after the tree update is complete.
+   * @warning only valid during cb_update call.
+   * Initialization does not matter.
+   */
+  bool desired_state;
 
   /** @brief Scratch data used by implantation. Initialize to zero. */
   struct pt_ctx ctx;

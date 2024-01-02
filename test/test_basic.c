@@ -118,8 +118,8 @@ void test_optimise_1(void) {
 
   ASSERT_OK(pt_init(&pt));
 
-  n_root.enabled = true;
-  n_a.enabled = true;
+  n_root.state = true;
+  n_a.state = true;
 
   pt_optimize(&pt);
   assert_tree_state_optimal();
@@ -128,10 +128,10 @@ void test_optimise_1(void) {
 // ======== Main ===================================================================================
 
 void setUp(void) {
-  n_root.enabled = false;
-  n_a.enabled = false;
-  n_b.enabled = false;
-  n_c.enabled = false;
+  n_root.state = false;
+  n_a.state = false;
+  n_b.state = false;
+  n_c.state = false;
   c_a.enabled = false;
   c_b1.enabled = false;
   c_b2.enabled = false;

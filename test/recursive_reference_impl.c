@@ -76,20 +76,23 @@ static int inner_enable(struct pt_node *node, uint32_t current_depth) {
     if (err) return err;
   }
 
-  bool new_state = true;
-  node->previous_state = node->enabled;
-  node->enabled = new_state;
-  if (node->previous_state != node->enabled) {
-    PWR_TREE_INF("%s: %d -> %d", node->name, node->previous_state, node->enabled);
+  node->desired_state = true;
+
+  if (node->desired_state != node->state) {
+    PWR_TREE_INF("%s: %d -> %d", node->name, node->state, node->desired_state);
   }
   if (node->cb_update != 0) {
     int err = node->cb_update(node);
     node->previous_cb_return = err;
     if (err) {
-      PWR_TREE_ERR("%s: Callback returned error %i! Tree in non-optimal state.", node->name, err);
-      node->enabled = node->previous_state;
+      PWR_TREE_ERR("%s: Callback returned error %i! Tree in non-optimal state. State left %d.", node->name, err,
+                   node->state);
       return err;
+    } else {
+      node->state = node->desired_state;
     }
+  } else {
+    node->state = node->desired_state;
   }
 
   return 0;
@@ -101,19 +104,22 @@ static int inner_disable(struct pt_node *node, uint32_t current_depth) {
   }
 
   bool new_state = has_active_dependant(node);
-  node->previous_state = node->enabled;
-  node->enabled = new_state;
-  if (node->previous_state != node->enabled) {
-    PWR_TREE_INF("%s: %d -> %d", node->name, node->previous_state, node->enabled);
+  node->desired_state = new_state;
+  if (node->desired_state != node->state) {
+    PWR_TREE_INF("%s: %d -> %d", node->name, node->state, node->desired_state);
   }
   if (node->cb_update != 0) {
     int err = node->cb_update(node);
     node->previous_cb_return = err;
     if (err) {
-      PWR_TREE_ERR("%s: Callback returned error %i! Tree in non-optimal state.", node->name, err);
-      node->enabled = node->previous_state;
+      PWR_TREE_ERR("%s: Callback returned error %i! Tree in non-optimal state. State left %d.", node->name, err,
+                   node->state);
       return err;
+    } else {
+      node->state = node->desired_state;
     }
+  } else {
+    node->state = node->desired_state;
   }
 
   for (size_t i = 0; i < node->parent_count; i++) {
@@ -129,7 +135,7 @@ static int inner_optimize(struct pt_node *node, uint32_t current_depth) {
     return -1;
   }
 
-  if (node->enabled && !has_active_dependant(node)) {
+  if (node->state && !has_active_dependant(node)) {
     PWR_TREE_INF("Node %s enabled without active dependents!", node->name);
     int err = inner_disable(node, 0);
     if (err) return err;
@@ -145,7 +151,7 @@ static int inner_optimize(struct pt_node *node, uint32_t current_depth) {
 
 static bool has_active_dependant(struct pt_node *node) {
   for (size_t i = 0; i < node->child_count; i++) {
-    if (node->children[i]->enabled) {
+    if (node->children[i]->state) {
       return true;
     }
   }

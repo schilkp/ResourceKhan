@@ -174,14 +174,14 @@ void test_many_parent_nodes(void) {
 // ======== Main ===================================================================================
 
 void setUp(void) {
-  n_root.enabled = false;
-  n_a.enabled = false;
-  n_b.enabled = false;
-  n_c.enabled = false;
-  n_d.enabled = false;
-  n_e.enabled = false;
-  n_f.enabled = false;
-  n_g.enabled = false;
+  n_root.state = false;
+  n_a.state = false;
+  n_b.state = false;
+  n_c.state = false;
+  n_d.state = false;
+  n_e.state = false;
+  n_f.state = false;
+  n_g.state = false;
   c_root.enabled = false;
   c_a.enabled = false;
   c_b.enabled = false;
