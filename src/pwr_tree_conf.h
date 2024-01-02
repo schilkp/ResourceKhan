@@ -39,7 +39,7 @@
   do {                                                                                                                 \
     if (!(_condition_)) {                                                                                              \
       while (1) {                                                                                                      \
-        PWR_TREE_ERR("Assert failed @ %s:%s!", __FILE__, __LINE__);                                                    \
+        PWR_TREE_ERR("Assert failed @ %s:%i!", __FILE__, __LINE__);                                                    \
       }                                                                                                                \
     }                                                                                                                  \
   } while (0);
