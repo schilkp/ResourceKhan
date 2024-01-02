@@ -1,18 +1,18 @@
-#include "pwr_tree.h"
+#include "resource_khan.h"
 
-#define PWR_TREE_MAX_DEPTH 10
+#define RK_MAX_DEPTH 10
 
 // ==== Private Prototypes =====================================================
 
-static int inner_enable(struct pt_node *node, uint32_t current_depth);
-static int inner_disable(struct pt_node *node, uint32_t current_depth);
-static int inner_optimize(struct pt_node *node, uint32_t current_depth);
-static int update_node(struct pt_node *node, bool new_state);
-static bool has_active_dependant(struct pt_node *node);
+static int inner_enable(struct rk_node *node, uint32_t current_depth);
+static int inner_disable(struct rk_node *node, uint32_t current_depth);
+static int inner_optimize(struct rk_node *node, uint32_t current_depth);
+static int update_node(struct rk_node *node, bool new_state);
+static bool has_active_dependant(struct rk_node *node);
 
 // ==== Public Functions =======================================================
 
-int pt_enable_client(struct pt *pt, struct pt_client *client) {
+int rk_enable_client(struct rk_graph *pt, struct rk_client *client) {
   (void)pt;
 
   for (size_t i = 0; i < client->parent_count; i++) {
@@ -25,7 +25,7 @@ int pt_enable_client(struct pt *pt, struct pt_client *client) {
   return 0;
 }
 
-int pt_disable_client(struct pt *pt, struct pt_client *client) {
+int rk_disable_client(struct rk_graph *pt, struct rk_client *client) {
   (void)pt;
 
   client->enabled = false;
@@ -38,11 +38,11 @@ int pt_disable_client(struct pt *pt, struct pt_client *client) {
   return 0;
 }
 
-int pt_optimize(struct pt *pt) { return inner_optimize(pt->root, 0); }
+int rk_optimize(struct rk_graph *pt) { return inner_optimize(pt->root, 0); }
 
-void pt_node_add_child(struct pt_node *node, struct pt_node *child) {
-  PWR_TREE_ASSERT(node->child_count < PWR_TREE_MAX_CHILDREN);
-  PWR_TREE_ASSERT(child->parent_count < PWR_TREE_MAX_PARENTS);
+void rk_node_add_child(struct rk_node *node, struct rk_node *child) {
+  RK_ASSERT(node->child_count < RK_MAX_CHILDREN);
+  RK_ASSERT(child->parent_count < RK_MAX_PARENTS);
 
   node->children[node->child_count] = child;
   node->child_count++;
@@ -50,9 +50,9 @@ void pt_node_add_child(struct pt_node *node, struct pt_node *child) {
   child->parent_count++;
 }
 
-void pt_node_add_client(struct pt_node *node, struct pt_client *client) {
-  PWR_TREE_ASSERT(node->client_count < PWR_TREE_MAX_CHILDREN);
-  PWR_TREE_ASSERT(client->parent_count < PWR_TREE_MAX_PARENTS);
+void rk_node_add_client(struct rk_node *node, struct rk_client *client) {
+  RK_ASSERT(node->client_count < RK_MAX_CHILDREN);
+  RK_ASSERT(client->parent_count < RK_MAX_PARENTS);
 
   node->clients[node->client_count] = client;
   node->client_count++;
@@ -60,15 +60,15 @@ void pt_node_add_client(struct pt_node *node, struct pt_client *client) {
   client->parent_count++;
 }
 
-int pt_init(struct pt *pt) {
+int rk_init(struct rk_graph *pt) {
   // Attempt to optimize. Catches loops:
-  return pt_optimize(pt);
+  return rk_optimize(pt);
 }
 
 // ==== Private Functions ======================================================
 
-static int inner_enable(struct pt_node *node, uint32_t current_depth) {
-  if (current_depth == PWR_TREE_MAX_DEPTH) {
+static int inner_enable(struct rk_node *node, uint32_t current_depth) {
+  if (current_depth == RK_MAX_DEPTH) {
     return -1;
   }
 
@@ -80,8 +80,8 @@ static int inner_enable(struct pt_node *node, uint32_t current_depth) {
   return update_node(node, true);
 }
 
-static int inner_disable(struct pt_node *node, uint32_t current_depth) {
-  if (current_depth == PWR_TREE_MAX_DEPTH) {
+static int inner_disable(struct rk_node *node, uint32_t current_depth) {
+  if (current_depth == RK_MAX_DEPTH) {
     return -1;
   }
 
@@ -98,13 +98,13 @@ static int inner_disable(struct pt_node *node, uint32_t current_depth) {
   return 0;
 }
 
-static int inner_optimize(struct pt_node *node, uint32_t current_depth) {
-  if (current_depth == PWR_TREE_MAX_DEPTH) {
+static int inner_optimize(struct rk_node *node, uint32_t current_depth) {
+  if (current_depth == RK_MAX_DEPTH) {
     return -1;
   }
 
   if (node->state && !has_active_dependant(node)) {
-    PWR_TREE_INF("Node %s enabled without active dependents!", node->name);
+    RK_INF("Node %s enabled without active dependents!", node->name);
     int err = inner_disable(node, 0);
     if (err) return err;
   }
@@ -117,11 +117,11 @@ static int inner_optimize(struct pt_node *node, uint32_t current_depth) {
   return 0;
 }
 
-static int update_node(struct pt_node *node, bool new_state) {
+static int update_node(struct rk_node *node, bool new_state) {
   node->desired_state = new_state;
 
   if (node->desired_state != node->state) {
-    PWR_TREE_INF("%s: %d -> %d", node->name, node->previous_state, node->enabled);
+    RK_INF("%s: %d -> %d", node->name, node->state, node->desired_state);
   }
 
   if (node->cb_update != 0) {
@@ -129,8 +129,7 @@ static int update_node(struct pt_node *node, bool new_state) {
     int err = node->cb_update(node);
     node->previous_cb_return = err;
     if (err) {
-      PWR_TREE_ERR("%s: Callback returned error %i! Tree in non-optimal state. Node left %d.", node->name, err,
-                   node->state);
+      RK_ERR("%s: Callback returned error %i! Graph in non-optimal state. Node left %d.", node->name, err, node->state);
       return err;
     } else {
       node->state = new_state;
@@ -143,7 +142,7 @@ static int update_node(struct pt_node *node, bool new_state) {
   return 0;
 }
 
-static bool has_active_dependant(struct pt_node *node) {
+static bool has_active_dependant(struct rk_node *node) {
   for (size_t i = 0; i < node->child_count; i++) {
     if (node->children[i]->state) {
       return true;

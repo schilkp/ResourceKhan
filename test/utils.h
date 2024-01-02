@@ -1,7 +1,7 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
-#include "pwr_tree.h"
+#include "resource_khan.h"
 
 #define ASSERT_NODE(_node_, _state_)                                                                                   \
   do {                                                                                                                 \
@@ -15,6 +15,6 @@
 #define ASSERT_OK(_call_)  TEST_ASSERT_MESSAGE((_call_) == 0, "Call returned unexpected error")
 #define ASSERT_ERR(_call_) TEST_ASSERT_MESSAGE((_call_) != 0, "Call returned ok but expected error")
 
-void assert_tree_state_legal(struct pt *pt);
+void assert_graph_state_legal(struct rk_graph *pt);
 
 #endif /* UTILS_H_ */
