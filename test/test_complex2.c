@@ -41,14 +41,14 @@ bool EXPECT_INTERNAL_ASSERT = false;
 int mock_cb_update(const struct pt_node *self);
 
 // NODES:
-struct pt_node n_root = {.name = "n_root"};
-struct pt_node n_a = {.name = "n_a"};
-struct pt_node n_b = {.name = "n_b"};
-struct pt_node n_c = {.name = "n_c"};
-struct pt_node n_d = {.name = "n_d"};
-struct pt_node n_e = {.name = "n_e"};
-struct pt_node n_f = {.name = "n_f"};
-struct pt_node n_g = {.name = "n_g"};
+struct pt_node n_root = {.name = "n_root", .cb_update = mock_cb_update};
+struct pt_node n_a = {.name = "n_a", .cb_update = mock_cb_update};
+struct pt_node n_b = {.name = "n_b", .cb_update = mock_cb_update};
+struct pt_node n_c = {.name = "n_c", .cb_update = mock_cb_update};
+struct pt_node n_d = {.name = "n_d", .cb_update = mock_cb_update};
+struct pt_node n_e = {.name = "n_e", .cb_update = mock_cb_update};
+struct pt_node n_f = {.name = "n_f", .cb_update = mock_cb_update};
+struct pt_node n_g = {.name = "n_g", .cb_update = mock_cb_update};
 
 struct pt_node *nodes[] = {&n_root, &n_a, &n_b, &n_c, &n_d, &n_e, &n_f, &n_g};
 struct pt pt = {.nodes = nodes, .node_count = sizeof(nodes) / sizeof(nodes[0]), .root = &n_root};
