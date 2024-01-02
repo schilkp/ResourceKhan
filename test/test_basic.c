@@ -38,6 +38,8 @@ struct pt_client c_b1 = {.name = "c_b1"};
 struct pt_client c_b2 = {.name = "c_b2"};
 struct pt_client c_c = {.name = "c_c"};
 
+struct pt_client *clients[] = {&c_a, &c_b1, &c_b2, &c_c};
+
 void assert_tree_state_optimal(void) {
   assert_tree_state_legal(&pt);
   ASSERT_NODE(n_root, c_a.enabled || c_b1.enabled || c_b2.enabled || c_c.enabled);
@@ -130,14 +132,12 @@ void test_basic_optimize_1(void) {
 // ======== Main ===================================================================================
 
 void setUp(void) {
-  n_root.state = false;
-  n_a.state = false;
-  n_b.state = false;
-  n_c.state = false;
-  c_a.enabled = false;
-  c_b1.enabled = false;
-  c_b2.enabled = false;
-  c_c.enabled = false;
+  for (size_t i = 0; i < pt.node_count; i++) {
+    pt.nodes[i]->state = false;
+  }
+  for (size_t i = 0; i < (sizeof(clients) / sizeof(clients[0])); i++) {
+    clients[i]->enabled = false;
+  }
 }
 
 void tearDown(void) {}

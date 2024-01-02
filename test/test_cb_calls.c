@@ -49,6 +49,8 @@ struct pt_client c_b = {.name = "c_b"};
 struct pt_client c_c = {.name = "c_c"};
 struct pt_client c_d = {.name = "c_d"};
 
+struct pt_client *clients[] = {&c_root, &c_a, &c_b, &c_c, &c_d};
+
 bool node_cb_called[sizeof(nodes) / sizeof(nodes[0])] = {0};
 
 int mock_cb_update(const struct pt_node *self) {
@@ -191,16 +193,12 @@ void test_cb_calls_disable4(void) {
 // ======== Main ===================================================================================
 
 void setUp(void) {
-  n_root.state = false;
-  n_a.state = false;
-  n_b.state = false;
-  n_c.state = false;
-  n_d.state = false;
-  c_root.enabled = false;
-  c_a.enabled = false;
-  c_b.enabled = false;
-  c_c.enabled = false;
-  c_d.enabled = false;
+  for (size_t i = 0; i < pt.node_count; i++) {
+    pt.nodes[i]->state = false;
+  }
+  for (size_t i = 0; i < (sizeof(clients) / sizeof(clients[0])); i++) {
+    clients[i]->enabled = false;
+  }
 }
 
 void tearDown(void) {}

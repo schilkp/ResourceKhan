@@ -66,7 +66,11 @@ void test_catch_loop3_init(void) {
 
 // ======== Main ===================================================================================
 
-void setUp(void) {}
+void setUp(void) {
+  for (size_t i = 0; i < pt.node_count; i++) {
+    pt.nodes[i]->state = false;
+  }
+}
 
 void tearDown(void) {}
 

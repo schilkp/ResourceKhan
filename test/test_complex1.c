@@ -62,6 +62,10 @@ struct pt_client c_g1 = {.name = "c_g1"};
 struct pt_client c_g2 = {.name = "c_g2"};
 struct pt_client c_many = {.name = "c_many"};
 
+struct pt_client *clients[] = {
+    &c_root, &c_a, &c_b, &c_c, &c_d, &c_e, &c_f, &c_g1, &c_g2, &c_many,
+};
+
 void assert_tree_state_optimal(void) {
   assert_tree_state_legal(&pt);
   ASSERT_NODE(n_root, c_root.enabled || c_a.enabled || c_b.enabled || c_c.enabled || c_d.enabled || c_e.enabled ||
@@ -184,7 +188,7 @@ void test_complex1_optimize2(void) {
 
   ASSERT_OK(pt_init(&pt));
 
-  for(size_t i = 0; i < pt.node_count; i++) {
+  for (size_t i = 0; i < pt.node_count; i++) {
     pt.nodes[i]->state = true;
   }
 
@@ -193,28 +197,15 @@ void test_complex1_optimize2(void) {
   assert_tree_state_optimal();
 }
 
-
 // ======== Main ===================================================================================
 
 void setUp(void) {
-  n_root.state = false;
-  n_a.state = false;
-  n_b.state = false;
-  n_c.state = false;
-  n_d.state = false;
-  n_e.state = false;
-  n_f.state = false;
-  n_g.state = false;
-  c_root.enabled = false;
-  c_a.enabled = false;
-  c_b.enabled = false;
-  c_c.enabled = false;
-  c_d.enabled = false;
-  c_e.enabled = false;
-  c_f.enabled = false;
-  c_g1.enabled = false;
-  c_g2.enabled = false;
-  c_many.enabled = false;
+  for (size_t i = 0; i < pt.node_count; i++) {
+    pt.nodes[i]->state = false;
+  }
+  for (size_t i = 0; i < (sizeof(clients) / sizeof(clients[0])); i++) {
+    clients[i]->enabled = false;
+  }
 }
 
 void tearDown(void) {}
