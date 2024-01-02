@@ -18,9 +18,9 @@ static bool has_active_dependant(struct rk_node *node);
 
 #define RK_ASSERT_NO_NULLPTR(_pt_)                                                                                     \
   do {                                                                                                                 \
-    RK_ASSERT(_pt_ != 0);                                                                                              \
-    RK_ASSERT(_pt_->nodes != 0);                                                                                       \
-    RK_ASSERT(_pt_->root != 0);                                                                                        \
+    RK_ASSERT((_pt_) != 0);                                                                                            \
+    RK_ASSERT((_pt_)->nodes != 0);                                                                                     \
+    RK_ASSERT((_pt_)->root != 0);                                                                                      \
   } while (0)
 
 // ==== Public Functions =======================================================
