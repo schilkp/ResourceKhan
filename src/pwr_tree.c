@@ -44,14 +44,14 @@ int pt_disable_client(struct pt *pt, struct pt_client *client) {
 
   client->enabled = false;
 
-  return pt_optimise(pt);
+  return pt_optimize(pt);
 }
 
-int pt_optimise(struct pt *pt) {
+int pt_optimize(struct pt *pt) {
   PWR_TREE_ASSERT_NO_NULLPTR(pt);
 
-  // Traverse in reverse-topoligcal order, disabling all nodes if they no longer have
-  // any active dependant:
+  // Traverse in reverse-topological order, disabling all nodes if they no longer have
+  // any active dependent:
   struct pt_node *node = pt->ll_topo_tail;
 
   while (node != 0) {
@@ -249,7 +249,7 @@ static int update_node(struct pt_node *node, bool new_state) {
     int err = node->cb_update(node);
     node->previous_cb_return = err;
     if (err) {
-      PWR_TREE_ERR("%s: Callback returned error %i! Tree in non-optiomal state.", node->name, err);
+      PWR_TREE_ERR("%s: Callback returned error %i! Tree in non-optimal state.", node->name, err);
       node->enabled = node->previous_state;
       return err;
     }

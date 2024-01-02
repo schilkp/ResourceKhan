@@ -31,11 +31,11 @@ bool EXPECT_INTERNAL_ASSERT = false;
 //            |||
 //            n_g
 //
-// Very similar to complex1, but there are two parrallel connections between n_d and n_f, and
-// three parralell connections between n_f and n_g.
+// Very similar to complex1, but there are two parallel connections between n_d and n_f, and
+// three parallel connections between n_f and n_g.
 //
 // All nodes have a single, identically named client (n_root -> c_root, n_a -> c_a etc),
-// except n_g, which has two (c_g1, c_g2). In addition, there is node c_many, which has
+// except n_g, which has two (c_g1, c_g2). In addition, there is c_many, which has
 // parents n_a, n_d, and n_e.
 
 int mock_cb_update(const struct pt_node *self);

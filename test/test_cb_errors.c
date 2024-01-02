@@ -32,7 +32,7 @@ bool EXPECT_INTERNAL_ASSERT = false;
 //            n_g
 //
 // All nodes have a single, identically named client (n_root -> c_root, n_a -> c_a etc),
-// except n_g, which has two (c_g1, c_g2). In addition, there is node c_many, which has
+// except n_g, which has two (c_g1, c_g2). In addition, there is c_many, which has
 // parents n_a, n_d, and n_e.
 
 int mock_cb_update(const struct pt_node *self);
@@ -177,7 +177,7 @@ void test_single_failure_then_optimise(void) {
   assert_tree_state_legal(&pt);
 
   n_a_fail = false;
-  ASSERT_OK(pt_optimise(&pt));
+  ASSERT_OK(pt_optimize(&pt));
   assert_tree_state_optimal();
 
   ASSERT_NODE(n_root, 0);
@@ -224,7 +224,7 @@ void test_pointless_optimise(void) {
   ASSERT_OK(pt_enable_client(&pt, &c_b));
   assert_tree_state_optimal();
 
-  ASSERT_OK(pt_optimise(&pt));
+  ASSERT_OK(pt_optimize(&pt));
   assert_tree_state_optimal();
 
   ASSERT_OK(pt_disable_client(&pt, &c_b));
@@ -233,7 +233,7 @@ void test_pointless_optimise(void) {
   ASSERT_OK(pt_disable_client(&pt, &c_f));
   assert_tree_state_optimal();
 
-  ASSERT_OK(pt_optimise(&pt));
+  ASSERT_OK(pt_optimize(&pt));
   assert_tree_state_optimal();
 }
 

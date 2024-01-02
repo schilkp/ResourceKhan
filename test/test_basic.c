@@ -121,7 +121,7 @@ void test_optimise_1(void) {
   n_root.enabled = true;
   n_a.enabled = true;
 
-  pt_optimise(&pt);
+  pt_optimize(&pt);
   assert_tree_state_optimal();
 }
 

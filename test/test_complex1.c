@@ -32,7 +32,7 @@ bool EXPECT_INTERNAL_ASSERT = false;
 //            n_g
 //
 // All nodes have a single, identically named client (n_root -> c_root, n_a -> c_a etc),
-// except n_g, which has two (c_g1, c_g2). In addition, there is node c_many, which has
+// except n_g, which has two (c_g1, c_g2). In addition, there is c_many, which has
 // parents n_a, n_d, and n_e.
 
 int mock_cb_update(const struct pt_node *self);
