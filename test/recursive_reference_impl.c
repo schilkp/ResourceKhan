@@ -10,6 +10,8 @@ static int inner_optimize(struct rk_node *node, uint32_t current_depth);
 static int update_node(struct rk_node *node, bool new_state);
 static bool has_active_dependant(struct rk_node *node);
 
+#define RK_ON_OFF(_i_) ((_i_) ? "ON" : "OFF")
+
 // ==== Public Functions =======================================================
 
 int rk_enable_client(struct rk_graph *pt, struct rk_client *client) {
@@ -121,7 +123,7 @@ static int update_node(struct rk_node *node, bool new_state) {
   node->desired_state = new_state;
 
   if (node->desired_state != node->state) {
-    RK_INF("%s: %d -> %d", node->name, node->state, node->desired_state);
+    RK_INF("%s: %s -> %s", node->name, RK_ON_OFF(node->state), RK_ON_OFF(node->desired_state));
   }
 
   if (node->cb_update != 0) {
@@ -129,7 +131,8 @@ static int update_node(struct rk_node *node, bool new_state) {
     int err = node->cb_update(node);
     node->previous_cb_return = err;
     if (err) {
-      RK_ERR("%s: Callback returned error %i! Graph in non-optimal state. Node left %d.", node->name, err, node->state);
+      RK_ERR("%s: Callback returned error %i! Graph in non-optimal state. Node left %s.", node->name, err,
+             RK_ON_OFF(node->state));
       return err;
     } else {
       node->state = new_state;
