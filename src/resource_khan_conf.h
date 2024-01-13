@@ -18,8 +18,14 @@
 /** @brief Maximum number of children nodes and clients per node */
 #define RK_MAX_CHILDREN 4
 
+/**
+ * @brief Return value indicating a function did not complete succesfully
+ * @note Must be an 'int' value that is not '0'
+ */
+#define RK_ERR 1
+
 /** @brief Information log function */
-#define RK_INF(_fmt_, ...)                                                                                             \
+#define RK_LOG_INF(_fmt_, ...)                                                                                         \
   do {                                                                                                                 \
     printf("INF: "_fmt_                                                                                                \
            "\n",                                                                                                       \
@@ -27,21 +33,11 @@
   } while (0)
 
 /** @brief Error log function */
-#define RK_ERR(_fmt_, ...)                                                                                             \
+#define RK_LOG_ERR(_fmt_, ...)                                                                                         \
   do {                                                                                                                 \
     printf("ERR: "_fmt_                                                                                                \
            "\n",                                                                                                       \
            __VA_ARGS__);                                                                                               \
   } while (0)
-
-/** @brief Assertion */
-#define RK_ASSERT(_condition_)                                                                                         \
-  do {                                                                                                                 \
-    if (!(_condition_)) {                                                                                              \
-      while (1) {                                                                                                      \
-        RK_ERR("Assert failed @ %s:%i!", __FILE__, __LINE__);                                                          \
-      }                                                                                                                \
-    }                                                                                                                  \
-  } while (0);
 
 #endif /* RESOURCE_KHAN_CONF_H_ */

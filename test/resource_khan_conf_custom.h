@@ -5,8 +5,6 @@
 #include "unity_internals.h"
 #include <stdbool.h>
 
-extern bool EXPECT_INTERNAL_ASSERT;
-
 /** @brief Maximum length of node/client name  */
 #define RK_MAX_NAME_LEN 15
 
@@ -16,26 +14,20 @@ extern bool EXPECT_INTERNAL_ASSERT;
 /** @brief Maximum number of children nodes and clients per node */
 #define RK_MAX_CHILDREN 4
 
+/**
+ * @brief Return value indicating a function did not complete succesfully
+ * @note Must be an 'int' value that is not '0'
+ */
+#define RK_ERR 1
+
 /** @brief Information log function */
-#define RK_INF(_fmt_, ...)                                                                                             \
+#define RK_LOG_INF(_fmt_, ...)                                                                                         \
   do {                                                                                                                 \
   } while (0)
 
 /** @brief Error log function */
-#define RK_ERR(_fmt_, ...)                                                                                             \
+#define RK_LOG_ERR(_fmt_, ...)                                                                                         \
   do {                                                                                                                 \
   } while (0)
-
-/** @brief Assertion */
-#define RK_ASSERT(_condition_)                                                                                         \
-  do {                                                                                                                 \
-    if (EXPECT_INTERNAL_ASSERT) {                                                                                      \
-      if (!(_condition_)) {                                                                                            \
-        TEST_PASS();                                                                                                   \
-      }                                                                                                                \
-    } else {                                                                                                           \
-      TEST_ASSERT_MESSAGE(_condition_, "Internal assert failed.");                                                     \
-    }                                                                                                                  \
-  } while (0);
 
 #endif /* RESOURCE_KHAN_CONF_CUSTOM_H_ */

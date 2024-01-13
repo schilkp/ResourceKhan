@@ -16,20 +16,20 @@ static int optimize_node(struct rk_graph *pt, struct rk_node *node);
 static int update_node(struct rk_node *node, bool new_state);
 static bool has_active_dependant(struct rk_node *node);
 
-#define RK_ASSERT_NO_NULLPTR(_pt_)                                                                                     \
-  do {                                                                                                                 \
-    RK_ASSERT((_pt_) != 0);                                                                                            \
-    RK_ASSERT((_pt_)->nodes != 0);                                                                                     \
-    RK_ASSERT((_pt_)->root != 0);                                                                                      \
-  } while (0)
+static inline bool handle_contains_nullptr(struct rk_graph *graph) {
+  if (graph == 0) return true;
+  if (graph->nodes == 0) return true;
+  if (graph->root == 0) return true;
+  return false;
+}
 
 #define RK_ON_OFF(_i_) ((_i_) ? "ON" : "OFF")
 
 // ==== Public Functions =======================================================
 
 int rk_enable_client(struct rk_graph *pt, struct rk_client *client) {
-  RK_ASSERT_NO_NULLPTR(pt);
-  RK_ASSERT(client != 0);
+  if (handle_contains_nullptr(pt)) return RK_ERR;
+  if (client == 0) return RK_ERR;
 
   for (size_t i = 0; i < client->parent_count; i++) {
     int err = enable_node(pt, client->parents[i]);
@@ -42,8 +42,8 @@ int rk_enable_client(struct rk_graph *pt, struct rk_client *client) {
 }
 
 int rk_disable_client(struct rk_graph *pt, struct rk_client *client) {
-  RK_ASSERT_NO_NULLPTR(pt);
-  RK_ASSERT(client != 0);
+  if (handle_contains_nullptr(pt)) return RK_ERR;
+  if (client == 0) return RK_ERR;
 
   client->enabled = false;
 
@@ -56,7 +56,7 @@ int rk_disable_client(struct rk_graph *pt, struct rk_client *client) {
 }
 
 int rk_optimize(struct rk_graph *pt) {
-  RK_ASSERT_NO_NULLPTR(pt);
+  if (handle_contains_nullptr(pt)) return RK_ERR;
 
   // Traverse in reverse-topological order, disabling all nodes if they no longer have
   // any active dependent:
@@ -73,32 +73,36 @@ int rk_optimize(struct rk_graph *pt) {
   return 0;
 }
 
-void rk_node_add_child(struct rk_node *node, struct rk_node *child) {
-  RK_ASSERT(node != 0);
-  RK_ASSERT(node->child_count < RK_MAX_CHILDREN);
-  RK_ASSERT(child != 0);
-  RK_ASSERT(child->parent_count < RK_MAX_PARENTS);
+int rk_node_add_child(struct rk_node *node, struct rk_node *child) {
+  if (node == 0) return RK_ERR;
+  if (node->child_count == RK_MAX_CHILDREN) return RK_ERR;
+  if (child == 0) return RK_ERR;
+  if (child->parent_count == RK_MAX_PARENTS) return RK_ERR;
 
   node->children[node->child_count] = child;
   node->child_count++;
   child->parents[child->parent_count] = node;
   child->parent_count++;
+
+  return 0;
 }
 
-void rk_node_add_client(struct rk_node *node, struct rk_client *client) {
-  RK_ASSERT(node != 0);
-  RK_ASSERT(node->client_count < RK_MAX_CHILDREN);
-  RK_ASSERT(client != 0);
-  RK_ASSERT(client->parent_count < RK_MAX_PARENTS);
+int rk_node_add_client(struct rk_node *node, struct rk_client *client) {
+  if (node == 0) return RK_ERR;
+  if (node->child_count == RK_MAX_CHILDREN) return RK_ERR;
+  if (client == 0) return RK_ERR;
+  if (client->parent_count == RK_MAX_PARENTS) return RK_ERR;
 
   node->clients[node->client_count] = client;
   node->client_count++;
   client->parents[client->parent_count] = node;
   client->parent_count++;
+
+  return 0;
 }
 
 int rk_init(struct rk_graph *pt) {
-  RK_ASSERT_NO_NULLPTR(pt);
+  if (handle_contains_nullptr(pt)) return RK_ERR;
 
   reset_ctx_all(pt);
 
@@ -134,8 +138,8 @@ int rk_init(struct rk_graph *pt) {
       // graph is not acyclic:
       if (node_to_check->ctx.ll_topo_next != 0 || ll_topo_tail == node_to_check) {
         // Cyclic graph. Abort.
-        RK_ERR("Graph contains cycle, likely involving node %s!", node_to_check->name);
-        return 1;
+        RK_LOG_ERR("Graph contains cycle, likely involving node %s!", node_to_check->name);
+        return RK_ERR;
       }
 
       bool has_parent_outside_l = false;
@@ -174,10 +178,10 @@ int rk_init(struct rk_graph *pt) {
   }
 
   if (topo_count != pt->node_count) {
-    RK_ERR("Graph malformed. It may contain nodes not in the node list, be cyclic or be disconnected. "
-           "Topological list contains %zd elements, but graph claims to have %zd nodes!",
-           topo_count, pt->node_count);
-    return 1;
+    RK_LOG_ERR("Graph malformed. It may contain nodes not in the node list, be cyclic or be disconnected. "
+               "Topological list contains %zd elements, but graph claims to have %zd nodes!",
+               topo_count, pt->node_count);
+    return RK_ERR;
   }
 
   pt->ll_topo_tail = ll_topo_tail;
@@ -215,7 +219,7 @@ static int enable_node(struct rk_graph *pt, struct rk_node *node) {
 
     for (size_t i = 0; i < trv_head->parent_count; i++) {
       struct rk_node *parent = trv_head->parents[i];
-      RK_ASSERT(parent != 0);
+      if (parent == 0) return RK_ERR;
 
       // Check if parent is already in "traverse" linked list:
       if (parent->ctx.ll_trv == 0 && parent != trv_tail) {
@@ -259,7 +263,7 @@ static int optimize_node(struct rk_graph *pt, struct rk_node *node) {
 
     for (size_t i = 0; i < trv_head->parent_count; i++) {
       struct rk_node *parent = trv_head->parents[i];
-      RK_ASSERT(parent != 0);
+      if (parent == 0) return RK_ERR;
 
       // Check if parent is already in "traverse" linked list:
       if (parent->ctx.ll_trv == 0 && parent != trv_tail) {
@@ -293,7 +297,7 @@ static int update_node(struct rk_node *node, bool new_state) {
   node->desired_state = new_state;
 
   if (node->desired_state != node->state) {
-    RK_INF("%s: %s -> %s", node->name, RK_ON_OFF(node->state), RK_ON_OFF(node->desired_state));
+    RK_LOG_INF("%s: %s -> %s", node->name, RK_ON_OFF(node->state), RK_ON_OFF(node->desired_state));
   }
 
   if (node->cb_update != 0) {
@@ -301,8 +305,8 @@ static int update_node(struct rk_node *node, bool new_state) {
     int err = node->cb_update(node);
     node->previous_cb_return = err;
     if (err) {
-      RK_ERR("%s: Callback returned error %i! Graph in non-optimal state. Node left %s.", node->name, err,
-             RK_ON_OFF(node->state));
+      RK_LOG_ERR("%s: Callback returned error %i! Graph in non-optimal state. Node left %s.", node->name, err,
+                 RK_ON_OFF(node->state));
       return err;
     } else {
       node->state = new_state;
@@ -318,13 +322,13 @@ static int update_node(struct rk_node *node, bool new_state) {
 // Check if a given node has any direct children or clients that are active.
 static bool has_active_dependant(struct rk_node *node) {
   for (size_t i = 0; i < node->child_count; i++) {
-    RK_ASSERT(node->children[i] != 0);
+    if (node->children[i] == 0) return RK_ERR;
     if (node->children[i]->state) {
       return true;
     }
   }
   for (size_t i = 0; i < node->client_count; i++) {
-    RK_ASSERT(node->clients[i] != 0);
+    if (node->clients[i] == 0) return RK_ERR;
     if (node->clients[i]->enabled) {
       return true;
     }

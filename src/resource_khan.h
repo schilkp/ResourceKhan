@@ -156,7 +156,9 @@ struct rk_client {
  *
  * @param graph resource graph.
  * @param client client to be enabled.
- * @return 0 if successful, an error code returned by a node's cb_update callback otherwise.
+ * @return 0 if successful
+ * @return RK_ERR if an unexpected nullpointer is encountered
+ * @return the error code returned by a node's cb_update callback if a callback fails
  */
 int rk_enable_client(struct rk_graph *graph, struct rk_client *client);
 
@@ -165,7 +167,9 @@ int rk_enable_client(struct rk_graph *graph, struct rk_client *client);
  * This disables all resource from the client upwards that are no longer required.
  *
  * @param graph resource graph.
- * @return 0 if successful, an error code returned by a node's cb_update callback otherwise.
+ * @return 0 if successful
+ * @return RK_ERR if an unexpected nullpointer is encountered
+ * @return the error code returned by a node's cb_update callback if a callback fails
  */
 int rk_disable_client(struct rk_graph *graph, struct rk_client *client);
 
@@ -176,7 +180,9 @@ int rk_disable_client(struct rk_graph *graph, struct rk_client *client);
  * nodes that are found to be in such a state are disabled.
  *
  * @param graph resource graph.
- * @return 0 if successful, an error code returned by a node's cb_update callback otherwise.
+ * @return 0 if successful
+ * @return RK_ERR if an unexpected nullpointer is encountered
+ * @return the error code returned by a node's cb_update callback if a callback fails
  */
 int rk_optimize(struct rk_graph *graph);
 
@@ -187,8 +193,11 @@ int rk_optimize(struct rk_graph *graph);
  *
  * @param node node to receive new child
  * @param child child to be added
+ * @return 0 if successful
+ * @return RK_ERR if an unexpected nullpointer is encountered 
+ * @return RK_ERR if the RK_MAX_PARENTS or RK_MAX_CHILDREN are exceeded
  */
-void rk_node_add_child(struct rk_node *node, struct rk_node *child);
+int rk_node_add_child(struct rk_node *node, struct rk_node *child);
 
 /**
  * @brief Add a client to a node.
@@ -197,16 +206,20 @@ void rk_node_add_child(struct rk_node *node, struct rk_node *child);
  *
  * @param node node to receive new child
  * @param child child to be added
+ * @return 0 if successful
+ * @return RK_ERR if an unexpected nullpointer is encountered 
+ * @return RK_ERR if the RK_MAX_PARENTS or RK_MAX_CHILDREN are exceeded
  */
-void rk_node_add_client(struct rk_node *node, struct rk_client *client);
+int rk_node_add_client(struct rk_node *node, struct rk_client *client);
 
 /**
  * @brief Initialize a resource graph.
  * Must be called after all nodes and clients have been added to the graph,
  * and before the graph is used.
  *
- * @param graph resource graph.
- * @return 0 if successful, 1 if graph could not be initialized.
+ * @param graph resource graph
+ * @return 0 if successful
+ * @return RK_ERR if the graph could not be initialized
  */
 int rk_init(struct rk_graph *graph);
 

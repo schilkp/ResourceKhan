@@ -2,10 +2,9 @@
 #include "string.h"
 #include "unity.h"
 #include "unity_internals.h"
+#include "utils.h"
 
 #include "resource_khan.h"
-
-bool EXPECT_INTERNAL_ASSERT = true;
 
 // ======== Resource Graph =========================================================================
 
@@ -32,17 +31,9 @@ void init_graph(void) {
 
 // ======== Tests ==================================================================================
 
-void test_catch_nullptr_enable_direct(void) {
-  EXPECT_INTERNAL_ASSERT = true;
-  rk_enable_client(&pt, 0);
-  TEST_FAIL_MESSAGE("Expected internal assertion!");
-}
+void test_catch_nullptr_enable_direct(void) { ASSERT_ERR(rk_enable_client(&pt, 0)); }
 
-void test_catch_nullptr_disable_direct(void) {
-  EXPECT_INTERNAL_ASSERT = true;
-  rk_enable_client(&pt, 0);
-  TEST_FAIL_MESSAGE("Expected internal assertion!");
-}
+void test_catch_nullptr_disable_direct(void) { ASSERT_ERR(rk_enable_client(&pt, 0)); }
 
 // ======== Main ===================================================================================
 

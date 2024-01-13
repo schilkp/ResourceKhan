@@ -6,8 +6,6 @@
 
 #include "resource_khan.h"
 
-bool EXPECT_INTERNAL_ASSERT = false;
-
 // ======== Resource Graph =====================================================================
 
 //    +---------+

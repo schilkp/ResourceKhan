@@ -6,8 +6,6 @@
 
 #include "resource_khan.h"
 
-bool EXPECT_INTERNAL_ASSERT = false;
-
 // ======== Resource Graph =========================================================================
 
 //
@@ -59,10 +57,7 @@ void init_graph(void) {
 
 // ======== Tests ==================================================================================
 
-void test_catch_loop3_init(void) {
-  EXPECT_INTERNAL_ASSERT = false;
-  ASSERT_ERR(rk_init(&pt));
-}
+void test_catch_loop3_init(void) { ASSERT_ERR(rk_init(&pt)); }
 
 // ======== Main ===================================================================================
 
