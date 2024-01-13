@@ -297,7 +297,7 @@ static int update_node(struct rk_node *node, bool new_state) {
   }
 
   if (node->cb_update != 0) {
-    // Attempt to update note using callback:
+    // Attempt to update node using callback:
     int err = node->cb_update(node);
     node->previous_cb_return = err;
     if (err) {
