@@ -30,7 +30,7 @@ target_link_libraries(RK_Recursive_Reference PUBLIC TestFramework)
 # Util function to add a new test file.
 # Generates two executeable targets for each test. One linked against the actual library
 # implementation, one linked against the recursive reference implementation (test/recursive_reference_impl.c).
-function(add_pt_double_test TEST_SOURCE)
+function(add_double_test TEST_SOURCE)
     get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WLE)
 
     add_executable(ACTUAL_${TEST_NAME} ${TEST_SOURCE})
@@ -41,20 +41,18 @@ function(add_pt_double_test TEST_SOURCE)
 endfunction()
 
 # Util function to add a new test file.
-function(add_pt_test TEST_SOURCE)
+function(add_single_test TEST_SOURCE)
     get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WLE)
     add_executable(${TEST_NAME} ${TEST_SOURCE})
     target_link_libraries(${TEST_NAME} PUBLIC TestFramework RK)
 endfunction()
 
 
-add_pt_double_test(test/test_basic.c)
-add_pt_double_test(test/test_complex1.c)
-add_pt_double_test(test/test_complex2.c)
-add_pt_double_test(test/test_detect_loop1.c)
-add_pt_double_test(test/test_detect_loop2.c)
-add_pt_double_test(test/test_detect_loop3.c)
-add_pt_double_test(test/test_cb_errors.c)
-add_pt_double_test(test/test_cb_calls.c)
-
-add_pt_test(test/test_catch_nullptr.c)
+add_double_test(test/test_basic.c)
+add_double_test(test/test_complex1.c)
+add_double_test(test/test_complex2.c)
+add_double_test(test/test_detect_loop1.c)
+add_double_test(test/test_detect_loop2.c)
+add_double_test(test/test_detect_loop3.c)
+add_double_test(test/test_cb_errors.c)
+add_double_test(test/test_cb_calls.c)
