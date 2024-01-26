@@ -181,6 +181,9 @@ struct rk_client {
 
   /** @brief The nodes representing the resources this client requires */
   struct rk_node *parents[RK_MAX_PARENTS];
+
+  /** @brief Scratch data used by implantation. Initialize to zero. */
+  bool in_dot_graph;
 };
 
 /**

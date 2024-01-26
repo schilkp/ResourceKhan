@@ -10,7 +10,7 @@ add_compile_definitions(RK_USE_CUSTOM_CONF)
 add_compile_options(-Wall -Wextra -Wpedantic)
 
 # Compile resource_khan lib to static lib:
-add_library(RK STATIC src/resource_khan.c)
+add_library(RK STATIC src/resource_khan.c src/resource_khan_ext.c)
 target_include_directories(RK PUBLIC src)
 target_include_directories(RK PUBLIC test)
 target_link_libraries(RK PUBLIC TestFramework)
@@ -22,7 +22,7 @@ target_include_directories(TestFramework PUBLIC test)
 target_include_directories(TestFramework PUBLIC test/Unity)
 
 # Compile recursive reference implementation to static lib::
-add_library(RK_Recursive_Reference STATIC test/recursive_reference_impl.c)
+add_library(RK_Recursive_Reference STATIC test/recursive_reference_impl.c src/resource_khan_ext.c)
 target_include_directories(RK_Recursive_Reference PUBLIC src)
 target_include_directories(RK_Recursive_Reference PUBLIC test)
 target_link_libraries(RK_Recursive_Reference PUBLIC TestFramework)

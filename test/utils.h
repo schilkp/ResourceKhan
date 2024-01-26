@@ -17,4 +17,6 @@
 
 void assert_graph_state_legal(struct rk_graph *pt);
 
+void debug_render_graph(struct rk_graph *pt, const char *filename);
+
 #endif /* UTILS_H_ */
