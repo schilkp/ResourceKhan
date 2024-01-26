@@ -9,8 +9,8 @@
 
 // ==== Private Prototypes =====================================================
 
-static void reset_ctx_all(struct rk_graph *pt);
-static void reset_ctx_ll_trv(struct rk_graph *pt);
+static void reset_node_ctx_all(struct rk_graph *pt);
+static void reset_node_ctx_ll_trv(struct rk_graph *pt);
 static int enable_node(struct rk_graph *pt, struct rk_node *node);
 static int optimize_node(struct rk_graph *pt, struct rk_node *node);
 static int update_node(struct rk_node *node, bool new_state);
@@ -140,7 +140,7 @@ int rk_node_add_client(struct rk_node *node, struct rk_client *client) {
 int rk_init(struct rk_graph *pt) {
   if (handle_contains_nullptr(pt)) return RK_ERR;
 
-  reset_ctx_all(pt);
+  reset_node_ctx_all(pt);
 
   // == Topological sort (Kahn's algorithm): ==
 
@@ -227,16 +227,16 @@ int rk_init(struct rk_graph *pt) {
 
 // ==== Private Functions ======================================================
 
-static void reset_ctx_all(struct rk_graph *pt) {
+static void reset_node_ctx_all(struct rk_graph *pt) {
   for (size_t i = 0; i < pt->node_count; i++) {
-    struct rk_ctx *ctx = &(pt->nodes[i]->ctx);
+    struct rk_node_ctx *ctx = &(pt->nodes[i]->ctx);
     memset(ctx, 0, sizeof(*ctx));
   }
 }
 
-static void reset_ctx_ll_trv(struct rk_graph *pt) {
+static void reset_node_ctx_ll_trv(struct rk_graph *pt) {
   for (size_t i = 0; i < pt->node_count; i++) {
-    struct rk_ctx *ctx = &(pt->nodes[i]->ctx);
+    struct rk_node_ctx *ctx = &(pt->nodes[i]->ctx);
     ctx->ll_trv = 0;
   }
 }
@@ -245,7 +245,7 @@ static int enable_node(struct rk_graph *pt, struct rk_node *node) {
 
   // == STEP 1: Flood from node up to root to discover all nodes which require an update ==
 
-  reset_ctx_ll_trv(pt);
+  reset_node_ctx_ll_trv(pt);
 
   // "Traverse" linked-list:
   struct rk_node *trv_head = node;
@@ -292,7 +292,7 @@ static int optimize_node(struct rk_graph *pt, struct rk_node *node) {
 
   // == STEP 1: Flood from node up to root to discover all nodes which require an update ==
 
-  reset_ctx_ll_trv(pt);
+  reset_node_ctx_ll_trv(pt);
 
   // "Traverse" linked-list:
   struct rk_node *trv_head = node;

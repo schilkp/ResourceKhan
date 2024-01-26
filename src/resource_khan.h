@@ -37,7 +37,7 @@ struct rk_graph {
 };
 
 // Scratch data used by implementation.
-struct rk_ctx {
+struct rk_node_ctx {
   struct rk_node *ll_trv;
   struct rk_node *ll_topo_next;
   struct rk_node *ll_topo_prev;
@@ -124,7 +124,7 @@ struct rk_node {
   bool desired_state;
 
   /** @brief Scratch data used by implantation. Initialize to zero. */
-  struct rk_ctx ctx;
+  struct rk_node_ctx ctx;
 };
 
 /** @brief A client that requires the resources represented by some graph nodes */
@@ -194,7 +194,7 @@ int rk_optimize(struct rk_graph *graph);
  * @param node node to receive new child
  * @param child child to be added
  * @return 0 if successful
- * @return RK_ERR if an unexpected nullpointer is encountered 
+ * @return RK_ERR if an unexpected nullpointer is encountered
  * @return RK_ERR if the RK_MAX_PARENTS or RK_MAX_CHILDREN are exceeded
  */
 int rk_node_add_child(struct rk_node *node, struct rk_node *child);
@@ -207,7 +207,7 @@ int rk_node_add_child(struct rk_node *node, struct rk_node *child);
  * @param node node to receive new child
  * @param child child to be added
  * @return 0 if successful
- * @return RK_ERR if an unexpected nullpointer is encountered 
+ * @return RK_ERR if an unexpected nullpointer is encountered
  * @return RK_ERR if the RK_MAX_PARENTS or RK_MAX_CHILDREN are exceeded
  */
 int rk_node_add_client(struct rk_node *node, struct rk_client *client);
