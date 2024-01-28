@@ -7,6 +7,7 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 set(CMAKE_BUILD_TYPE Debug)
 
 add_compile_definitions(RK_USE_CUSTOM_CONF)
+add_compile_definitions(UNITY_INCLUDE_EXEC_TIME)
 add_compile_options(-Wall -Wextra -Wpedantic)
 
 # Compile resource_khan lib to static lib:

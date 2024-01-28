@@ -21,4 +21,4 @@ jobs:
 
     - name: Test
       working-directory: ${{github.workspace}}
-      run: python scripts/run_tests.py build/bin/
+      run: python scripts/run_tests.py -t 0.1 -j 1 build/bin/

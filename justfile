@@ -20,7 +20,7 @@ deepclean:
 
 # Compile and run tests.
 test: build
-    python scripts/run_tests.py build/bin/
+    python scripts/run_tests.py -t 0.1 -j 1 build/bin/
 
 # Auto-format all code.
 format:
