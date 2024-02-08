@@ -6,7 +6,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 set(CMAKE_BUILD_TYPE Debug)
 
-add_compile_definitions(RK_USE_CUSTOM_CONF)
 add_compile_definitions(UNITY_INCLUDE_EXEC_TIME)
 add_compile_options(-Wall -Wextra -Wpedantic)
 
@@ -14,7 +13,6 @@ add_compile_options(-Wall -Wextra -Wpedantic)
 add_library(RK STATIC src/resource_khan.c src/resource_khan_ext.c)
 target_include_directories(RK PUBLIC src)
 target_include_directories(RK PUBLIC test)
-target_link_libraries(RK PUBLIC TestFramework)
 
 # Compile test framework + utils to static lib:
 add_library(TestFramework STATIC test/Unity/unity.c test/utils.c)
